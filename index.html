@@ -1,0 +1,641 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>每日10分鐘</title>
+<meta name="description" content="護腰、強化核心與臀部的每日10分鐘健身助手">
+<meta name="theme-color" content="#0f766e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="每日10分鐘">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💪</text></svg>">
+<style>
+:root{
+  --bg:#f4f6f5; --card:#ffffff; --ink:#18201e; --muted:#5d6b67; --line:#e1e7e4;
+  --brand:#0f766e; --brand-ink:#ffffff; --brand-soft:#d6f0ec;
+  --fire:#ea580c; --fire-soft:#ffedd5; --ok:#16a34a; --ok-soft:#dcfce7;
+  --quick:#86c5bd; --warn:#b45309; --warn-soft:#fef3c7;
+  --rest:#6366f1; --rest-soft:#e0e7ff;
+  --shadow:0 1px 2px rgba(0,0,0,.05),0 4px 14px rgba(0,0,0,.05);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f1413; --card:#182120; --ink:#e8efed; --muted:#9aaba6; --line:#2a3633;
+    --brand:#2dd4bf; --brand-ink:#062925; --brand-soft:#123a35;
+    --fire:#fb923c; --fire-soft:#3b2414; --ok:#4ade80; --ok-soft:#133222;
+    --quick:#1f6b62; --warn:#fbbf24; --warn-soft:#3a2e10;
+    --rest:#a5b4fc; --rest-soft:#232a4d;
+    --shadow:none;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f1413; --card:#182120; --ink:#e8efed; --muted:#9aaba6; --line:#2a3633;
+  --brand:#2dd4bf; --brand-ink:#062925; --brand-soft:#123a35;
+  --fire:#fb923c; --fire-soft:#3b2414; --ok:#4ade80; --ok-soft:#133222;
+  --quick:#1f6b62; --warn:#fbbf24; --warn-soft:#3a2e10;
+  --rest:#a5b4fc; --rest-soft:#232a4d;
+  --shadow:none;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;line-height:1.55;-webkit-tap-highlight-color:transparent}
+.wrap{max-width:560px;margin:0 auto;padding:16px 16px calc(40px + env(safe-area-inset-bottom))}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:4px 0 14px}
+h1{font-size:22px;margin:0;letter-spacing:.5px}
+h2{font-size:16px;margin:0 0 10px}
+.pill{display:inline-flex;align-items:center;gap:4px;padding:6px 12px;border-radius:999px;font-weight:700;background:var(--fire-soft);color:var(--fire);font-size:15px;white-space:nowrap}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px;box-shadow:var(--shadow)}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+button{font:inherit;cursor:pointer;border:0;border-radius:12px}
+.btn{display:block;width:100%;padding:14px;font-size:17px;font-weight:700;background:var(--brand);color:var(--brand-ink)}
+.btn.ghost{background:transparent;color:var(--brand);border:1.5px solid var(--brand)}
+.btn.soft{background:var(--brand-soft);color:var(--brand)}
+.btn:active{transform:scale(.98)}
+.row{display:flex;gap:10px}
+.row>*{flex:1}
+.today-title{display:flex;align-items:center;gap:10px;margin-bottom:4px}
+.today-title .emo{font-size:30px}
+.today-title b{font-size:19px}
+.tag{display:inline-block;font-size:12px;padding:2px 8px;border-radius:999px;background:var(--brand-soft);color:var(--brand);font-weight:600;margin-right:4px}
+.done-banner{background:var(--ok-soft);color:var(--ok);font-weight:700;padding:8px 12px;border-radius:10px;margin:10px 0;text-align:center}
+ol.plan{margin:10px 0 14px;padding-left:22px}
+ol.plan li{margin:3px 0}
+ol.plan .amt{color:var(--muted);font-size:13px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{padding:8px 12px;border-radius:999px;background:var(--bg);border:1px solid var(--line);color:var(--ink);font-size:14px}
+.chip.on{background:var(--brand);color:var(--brand-ink);border-color:var(--brand)}
+.week{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;text-align:center}
+.week .d{font-size:12px;color:var(--muted)}
+.week .dot{margin:4px auto 0;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:15px;border:2px dashed var(--line)}
+.week .dot.done{background:var(--ok);border:0;color:#fff}
+.week .dot.quick{background:var(--quick);border:0;color:#fff}
+.week .dot.today{border-color:var(--brand);border-style:solid}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;text-align:center}
+.stats b{display:block;font-size:22px}
+.stats span{font-size:12px;color:var(--muted)}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;font-size:13px}
+.cal .h{color:var(--muted);font-size:12px}
+.cal .c{aspect-ratio:1;border-radius:8px;display:grid;place-items:center;background:var(--bg)}
+.cal .c.done{background:var(--ok);color:#fff;font-weight:700}
+.cal .c.quick{background:var(--quick);color:#fff}
+.cal .c.today{outline:2px solid var(--brand)}
+.cal .c.empty{background:transparent}
+.calnav{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.calnav button{background:var(--bg);color:var(--ink);padding:4px 12px;border:1px solid var(--line)}
+.badges{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px}
+.badge{text-align:center;padding:10px 4px;border-radius:12px;background:var(--bg);font-size:12px;color:var(--muted)}
+.badge .i{font-size:28px;display:block;filter:grayscale(1);opacity:.35}
+.badge.got{background:var(--fire-soft);color:var(--ink)}
+.badge.got .i{filter:none;opacity:1}
+.lv{display:flex;gap:8px}
+.lv button{flex:1;padding:10px 4px;background:var(--bg);color:var(--ink);border:1px solid var(--line);font-size:14px}
+.lv button.on{background:var(--brand);color:var(--brand-ink);border-color:var(--brand);font-weight:700}
+.hint{background:var(--warn-soft);color:var(--warn);padding:10px 12px;border-radius:10px;font-size:14px;margin-top:10px}
+details{border-top:1px solid var(--line);padding-top:10px;margin-top:4px}
+details:first-of-type{border-top:0;padding-top:0;margin-top:0}
+summary{cursor:pointer;font-weight:700;padding:4px 0}
+.why p,.why li{font-size:14.5px}
+.why ul{padding-left:20px}
+.switch{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line)}
+.switch:last-child{border-bottom:0}
+.switch input{width:22px;height:22px;accent-color:var(--brand)}
+textarea{width:100%;min-height:80px;font:12px monospace;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);padding:8px}
+svg.trend{width:100%;height:120px;display:block}
+.legend{display:flex;gap:14px;font-size:12px;color:var(--muted);margin-top:4px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+
+/* workout overlay */
+.ov{position:fixed;inset:0;background:var(--bg);z-index:10;display:none;flex-direction:column;overflow:auto}
+.ov.show{display:flex}
+.ov .top{display:flex;align-items:center;gap:10px;padding:12px 16px;padding-top:calc(12px + env(safe-area-inset-top))}
+.ov .top button{background:var(--card);color:var(--ink);border:1px solid var(--line);padding:8px 12px;font-size:14px}
+.bar{flex:1;height:8px;background:var(--line);border-radius:99px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--brand);width:0;transition:width .3s}
+.stage{flex:1;display:flex;flex-direction:column;align-items:center;padding:8px 16px 16px;text-align:center;max-width:560px;margin:0 auto;width:100%}
+.stage .kicker{font-size:14px;color:var(--muted);min-height:22px}
+.stage .name{font-size:28px;font-weight:800;margin:4px 0 2px;line-height:1.25}
+.stage .meta{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;min-height:26px}
+.stage .meta .tag{font-size:13px}
+.ring{position:relative;width:min(62vw,240px);aspect-ratio:1;margin:14px auto 10px}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring circle{fill:none;stroke-width:9}
+.ring .bg{stroke:var(--line)}
+.ring .fg{stroke:var(--brand);stroke-linecap:round;transition:stroke-dashoffset .25s linear}
+.ring.rest .fg{stroke:var(--rest)}
+.ring .num{position:absolute;inset:0;display:grid;place-items:center;font-size:64px;font-weight:800;font-variant-numeric:tabular-nums}
+.ring .num small{display:block;font-size:16px;font-weight:600;color:var(--muted);margin-top:-6px}
+.cues{list-style:none;padding:0;margin:4px 0 12px;text-align:left;width:100%}
+.cues li{padding:8px 12px 8px 34px;position:relative;background:var(--card);border:1px solid var(--line);border-radius:10px;margin-bottom:6px;font-size:15px}
+.cues li::before{content:"✓";position:absolute;left:12px;color:var(--brand);font-weight:800}
+.band{font-size:13px;background:var(--warn-soft);color:var(--warn);padding:6px 10px;border-radius:8px;margin-bottom:10px}
+.nextup{font-size:14px;color:var(--muted);margin-bottom:12px}
+.ctrl{width:100%;display:grid;grid-template-columns:1fr 2fr 1fr;gap:10px;margin-top:auto;padding-bottom:env(safe-area-inset-bottom)}
+.ctrl button{padding:16px 6px;font-size:16px;font-weight:700;background:var(--card);color:var(--ink);border:1px solid var(--line)}
+.ctrl .main{background:var(--brand);color:var(--brand-ink);border:0;font-size:18px}
+.ctrl .main.restbtn{background:var(--rest);color:#fff}
+.donebox{text-align:center;padding:24px 16px;max-width:560px;margin:0 auto;width:100%}
+.donebox .big{font-size:64px}
+.donebox h2{font-size:24px;margin:8px 0}
+.pain{text-align:left;margin:18px 0}
+.pain label{display:block;margin:12px 0 4px;font-weight:600}
+.pain input[type=range]{width:100%;accent-color:var(--brand)}
+.pain .v{float:right;color:var(--brand);font-weight:800}
+.confetti{position:fixed;inset:0;pointer-events:none;z-index:20;overflow:hidden}
+.confetti span{position:absolute;top:-40px;font-size:24px;animation:fall linear forwards}
+@keyframes fall{to{transform:translateY(110vh) rotate(540deg)}}
+.notice{background:var(--warn-soft);color:var(--warn);font-size:14px}
+.notice b{color:var(--ink)}
+</style>
+</head>
+<body>
+<div class="wrap" id="home"></div>
+
+<div class="ov" id="ov">
+  <div class="top">
+    <button id="wQuit">✕ 結束</button>
+    <div class="bar"><i id="wBar"></i></div>
+    <span class="small muted" id="wCount"></span>
+  </div>
+  <div class="stage" id="wStage">
+    <div class="kicker" id="wKicker"></div>
+    <div class="name" id="wName"></div>
+    <div class="meta" id="wMeta"></div>
+    <div class="ring" id="wRing">
+      <svg viewBox="0 0 100 100"><circle class="bg" cx="50" cy="50" r="44"/><circle class="fg" id="wArc" cx="50" cy="50" r="44" stroke-dasharray="276.46" stroke-dashoffset="0"/></svg>
+      <div class="num"><div><span id="wNum"></span><small id="wUnit"></small></div></div>
+    </div>
+    <div class="band" id="wBand" hidden></div>
+    <ul class="cues" id="wCues"></ul>
+    <div class="nextup" id="wNext"></div>
+    <div class="ctrl">
+      <button id="wPrev">⏮ 上一步</button>
+      <button class="main" id="wMain"></button>
+      <button id="wSkip">跳過 ⏭</button>
+    </div>
+  </div>
+  <div class="donebox" id="wDone" hidden></div>
+</div>
+
+<script>
+/* ===================== 動作庫 ===================== */
+// kind: reps = 做完自己按下一個；time = 自動倒數。sided = 左右各做一次。hold = 每下停幾秒
+const EX = {
+  catcow:{name:'貓牛式',emoji:'🐈',kind:'time',cues:['四足跪姿：手在肩膀下、膝蓋在髖關節下','吸氣抬頭、腰往下沉；吐氣拱背、低頭','慢慢做，只在不痛的範圍內活動'],why:'喚醒脊椎，緩解久坐僵硬'},
+  hipflexor:{name:'跪姿髖屈肌伸展',emoji:'🧎',kind:'time',sided:true,cues:['單膝跪地（膝下墊毛巾），另一腳在前','先夾緊屁股、骨盆微微往後捲，再把身體往前推','鼠蹊到大腿前側有拉感即可，腰不要拱'],why:'久坐會讓髖屈肌變緊，拉扯下背'},
+  figure4:{name:'仰躺 4 字臀部伸展',emoji:'4️⃣',kind:'time',sided:true,cues:['仰躺，一腳腳踝放到另一腳膝蓋上','雙手抱住下方大腿，往胸口拉','屁股外側有拉感，放鬆呼吸'],why:'放鬆臀部外側、梨狀肌'},
+  hamstring:{name:'彈力繩大腿後側伸展',emoji:'🦵',kind:'time',sided:true,band:'FE002 長彈力繩套腳底',cues:['仰躺，繩子套在腳底，膝蓋伸直往上拉','另一腳平放地面','大腿後側有拉感就好，不要硬拉'],why:'大腿後側太緊會牽動骨盆與下背'},
+  doorway:{name:'門框胸肌伸展',emoji:'🚪',kind:'time',cues:['前臂貼門框，手肘和肩膀同高','身體往前跨一步，胸前有拉感','肩膀放鬆不要聳肩'],why:'打開久坐造成的圓肩'},
+  curlup:{name:'McGill 捲腹',emoji:'🫁',kind:'reps',hold:8,cues:['仰躺，一腳彎曲一腳伸直，雙手墊在下背','頭和肩膀「微微」離地，停 8 秒','脖子不動，腰不要壓平也不要拱起'],why:'護腰版捲腹，不會反覆彎折腰椎'},
+  sideplank:{name:'側棒式',emoji:'📐',kind:'time',sided:true,variants:['膝蓋著地版','直腿版','直腿版'],cues:['手肘在肩膀正下方','頭、身體到膝（或腳）成一直線','屁股不要往後坐，也不要往下垂'],why:'強化側腹與臀中肌，穩定骨盆'},
+  birddog:{name:'鳥狗式',emoji:'🐕',kind:'reps',sided:true,hold:5,cues:['四足跪姿，背部保持平','同時伸出對側的手與腳，停 5 秒再收回','想像背上放一杯水不能灑出來'],why:'練背部與核心的穩定，閃腰族必備'},
+  deadbug:{name:'死蟲式',emoji:'🪲',kind:'reps',cues:['仰躺，手朝天花板、膝蓋彎 90 度抬起','下背輕貼地面，慢慢伸出對側手腳','左右交替算一下；下背離地就縮小動作'],why:'練深層核心，同時保護下背'},
+  plank:{name:'棒式',emoji:'🧱',kind:'time',cues:['手肘在肩膀下，身體成一直線','收小腹、夾屁股，不塌腰不翹臀','正常呼吸，不要憋氣'],why:'前側核心耐力'},
+  glutebridge:{name:'臀橋',emoji:'🌉',kind:'reps',cues:['仰躺屈膝，腳跟靠近屁股','用屁股把骨盆推起，頂端停 1 秒','是屁股出力，不是用腰拱起來'],why:'喚醒久坐「失憶」的臀大肌'},
+  bandbridge:{name:'彈力圈臀橋外撐',emoji:'🌉',kind:'reps',band:'FA020 彈力圈套膝蓋上方（先用黃色）',cues:['彈力圈套在膝蓋上方','膝蓋持續往外撐住圈，再推起屁股','頂端停 2 秒，感受屁股外側出力'],why:'同時練臀大肌＋臀中肌'},
+  clamshell:{name:'彈力圈蚌殼式',emoji:'🐚',kind:'reps',sided:true,band:'FA020 彈力圈套膝蓋上方（太難就換藍色）',cues:['側躺，髖與膝彎約 45 度，圈套膝上','腳跟貼在一起，上面的膝蓋往上打開','骨盆不要往後翻，慢慢放下'],why:'直接強化臀中肌——就是你屁股上緣外側痠的位置'},
+  sidelegraise:{name:'側躺抬腿',emoji:'🦩',kind:'reps',sided:true,cues:['側躺，下面的腳彎曲，上面的腳伸直、略往後','腳尖朝前（不要朝天花板）','用屁股外側把腿抬到約 45 度，停 1 秒'],why:'臀中肌主力訓練'},
+  monsterwalk:{name:'彈力圈側走',emoji:'🦀',kind:'time',band:'FA020 彈力圈套膝上（簡單）或腳踝上（難）',cues:['微蹲、背打直','往側邊走 8～10 步，再走回來','膝蓋不要往內夾，步伐小而穩'],why:'臀中肌＋骨盆穩定'},
+  squat:{name:'深蹲',emoji:'🏋️',kind:'reps',cues:['腳與肩同寬，腳尖微朝外','屁股往後坐，膝蓋和腳尖同方向','蹲到不痛的深度，站起時夾屁股'],why:'下肢基礎力量'},
+  pushup:{name:'伏地挺身',emoji:'💪',kind:'reps',variants:['跪膝版或標準版皆可','標準版','標準版（可放慢下降 3 秒）'],cues:['手略寬於肩，身體成一直線','下降時手肘約 45 度，不要往外開','核心收緊，腰不要塌'],why:'上肢推力＋核心'},
+  bandrow:{name:'彈力繩划船',emoji:'🚣',kind:'reps',band:'FE002 長彈力繩：中段繞門把或踩在腳下',cues:['雙手各握一端，站穩','手肘往後拉，肩胛骨往中間夾','慢慢放回，不要聳肩'],why:'強化上背，對抗久坐駝背'},
+  pallof:{name:'彈力繩抗旋轉推',emoji:'🛡️',kind:'reps',sided:true,band:'FE002 長彈力繩：固定在胸口高度、身體側邊',cues:['側對固定點站穩，雙手握繩在胸前','把手往前推直，停 2 秒再收回','身體不要被繩子拉轉——這就是核心在出力'],why:'抗旋轉核心，保護腰椎最實用的練法'},
+  march:{name:'原地高抬腿踏步',emoji:'🚶',kind:'time',cues:['原地踏步，膝蓋抬到髖的高度','手臂一起擺動','想多流汗就加快速度'],why:'暖身＋提高心跳'},
+  lowjack:{name:'無跳開合跳',emoji:'⭐',kind:'time',cues:['一腳往側邊踏出，雙手同時往上舉','左右交替，加快速度','不用跳，保護膝蓋與腰'],why:'低衝擊有氧'}
+};
+
+/* ===================== 課表 ===================== */
+// blocks: 每個 block 可以設 rounds（循環幾輪）；item: reps/sec、sets
+const ROUTINES = {
+  A:{name:'核心穩定日',emoji:'🛡️',focus:['護腰','核心'],desc:'McGill 護腰三大動作：捲腹、側棒式、鳥狗式',blocks:[
+    {items:[{ex:'catcow',sec:40}]},
+    {items:[{ex:'curlup',reps:5,sets:2},{ex:'sideplank',sec:20,sets:2},{ex:'birddog',reps:5,sets:2},{ex:'deadbug',reps:10}]},
+    {items:[{ex:'hipflexor',sec:30}]}
+  ]},
+  B:{name:'臀部強化日',emoji:'🍑',focus:['臀中肌','骨盆'],desc:'針對屁股上緣外側痠：把臀中肌練起來',blocks:[
+    {items:[{ex:'catcow',sec:40}]},
+    {items:[{ex:'clamshell',reps:15,sets:2},{ex:'bandbridge',reps:12,sets:2},{ex:'sidelegraise',reps:12},{ex:'monsterwalk',sec:40}]},
+    {items:[{ex:'figure4',sec:30}]}
+  ]},
+  C:{name:'全身肌力日',emoji:'💪',focus:['全身','姿勢'],desc:'你原本的深蹲＋伏地挺身＋棒式，再加上背部與抗旋轉',blocks:[
+    {items:[{ex:'march',sec:45}]},
+    {items:[{ex:'squat',reps:12,sets:2},{ex:'pushup',reps:10,sets:2},{ex:'bandrow',reps:15,sets:2},{ex:'pallof',reps:10},{ex:'plank',sec:30,sets:2}]},
+    {items:[{ex:'doorway',sec:30}]}
+  ]},
+  D:{name:'輕有氧循環',emoji:'🔥',focus:['有氧','流汗'],desc:'低衝擊循環 2 輪，心跳拉起來但不傷腰',blocks:[
+    {rounds:2,items:[{ex:'march',sec:40},{ex:'squat',reps:12},{ex:'lowjack',sec:40},{ex:'glutebridge',reps:12},{ex:'monsterwalk',sec:30},{ex:'plank',sec:20}]},
+    {items:[{ex:'hipflexor',sec:30}]}
+  ]},
+  E:{name:'伸展恢復日',emoji:'🧘',focus:['伸展','放鬆'],desc:'輕鬆的活動度＋穩定練習，讓身體恢復',blocks:[
+    {items:[{ex:'catcow',sec:40},{ex:'hipflexor',sec:30},{ex:'figure4',sec:30},{ex:'hamstring',sec:30},{ex:'birddog',reps:5},{ex:'deadbug',reps:10},{ex:'sideplank',sec:20},{ex:'doorway',sec:30}]}
+  ]},
+  Q:{name:'忙碌 3 分鐘版',emoji:'⚡',focus:['保持連續'],quick:true,desc:'真的沒時間也做一點，連續紀錄不中斷',blocks:[
+    {items:[{ex:'catcow',sec:30},{ex:'glutebridge',reps:12},{ex:'sideplank',sec:15},{ex:'birddog',reps:5}]}
+  ]}
+};
+const WEEK = {0:'E',1:'A',2:'B',3:'C',4:'A',5:'B',6:'D'};
+const WD = ['日','一','二','三','四','五','六'];
+const LEVELS = [{mult:1,name:'Lv1 入門'},{mult:1.3,name:'Lv2 進步'},{mult:1.6,name:'Lv3 強化'}];
+const LEVEL_UP_AFTER = 10;
+
+const BADGES = [
+  {id:'first',i:'🌱',n:'第一步',ok:s=>s.total>=1},
+  {id:'s3',i:'🔥',n:'連續 3 天',ok:s=>s.longest>=3},
+  {id:'s7',i:'📅',n:'連續 7 天',ok:s=>s.longest>=7},
+  {id:'s14',i:'⚡',n:'連續 14 天',ok:s=>s.longest>=14},
+  {id:'s30',i:'🏆',n:'連續 30 天',ok:s=>s.longest>=30},
+  {id:'n20',i:'🎯',n:'累計 20 次',ok:s=>s.total>=20},
+  {id:'n50',i:'💎',n:'累計 50 次',ok:s=>s.total>=50},
+  {id:'n100',i:'👑',n:'累計 100 次',ok:s=>s.total>=100},
+  {id:'m300',i:'⏱️',n:'累計 300 分鐘',ok:s=>s.minutes>=300},
+  {id:'lv2',i:'🚀',n:'升到 Lv2',ok:s=>s.maxLevel>=1},
+  {id:'lv3',i:'🦾',n:'升到 Lv3',ok:s=>s.maxLevel>=2},
+  {id:'pain',i:'📉',n:'痠痛減半',ok:s=>s.painHalved}
+];
+const CHEERS = ['今天的你又比昨天強一點 💪','腰會感謝你的 🙏','連續就是最強的天賦 🔥','10 分鐘換一整天的舒服，划算！','核心正在默默變強中 🧱','做完了！可以理直氣壯地耍廢了 😎'];
+
+/* ===================== 儲存 ===================== */
+const KEY = 'dailyfit.v1';
+function load(){
+  let d=null;
+  try{ d=JSON.parse(localStorage.getItem(KEY)); }catch(e){}
+  d = d||{};
+  d.logs = d.logs||[];
+  d.settings = Object.assign({level:0,sound:true,voice:true,maxLevel:0,noticeOk:false},d.settings||{});
+  return d;
+}
+let S = load();
+function save(){ try{ localStorage.setItem(KEY,JSON.stringify(S)); }catch(e){} }
+
+/* ===================== 日期與統計 ===================== */
+const pad=n=>String(n).padStart(2,'0');
+const dkey=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const addDays=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x;};
+function dayMap(){ // date -> 'full' | 'quick'
+  const m={};
+  for(const l of S.logs){ if(!l.quick) m[l.date]='full'; else if(!m[l.date]) m[l.date]='quick'; }
+  return m;
+}
+function stats(){
+  const m=dayMap(), now=new Date();
+  let cur=0, d=m[dkey(now)]?now:addDays(now,-1);
+  while(m[dkey(d)]){ cur++; d=addDays(d,-1); }
+  const days=Object.keys(m).sort(); let longest=0, run=0, prev=null;
+  for(const k of days){ const dt=new Date(k+'T00:00'); run = prev && dkey(addDays(prev,1))===k ? run+1 : 1; longest=Math.max(longest,run); prev=dt; }
+  const pains=S.logs.filter(l=>l.pain);
+  let painHalved=false;
+  if(pains.length>=6){
+    const avg=a=>a.reduce((s,l)=>s+l.pain.back+l.pain.hip,0)/a.length;
+    const first=avg(pains.slice(0,3)), last=avg(pains.slice(-3));
+    painHalved = first>=2 && last<=first/2;
+  }
+  return {streak:cur,longest,total:S.logs.length,minutes:S.logs.reduce((s,l)=>s+(l.min||0),0),maxLevel:S.settings.maxLevel,painHalved,days:m};
+}
+
+/* ===================== 課表展開 ===================== */
+function scaled(it,lv){
+  const mult=LEVELS[lv].mult;
+  if(it.reps) return {reps:Math.round(it.reps*mult)};
+  return {sec:Math.max(10,Math.round(it.sec*mult/5)*5)};
+}
+function buildSteps(rid,lv){
+  const R=ROUTINES[rid], out=[];
+  for(const b of R.blocks){
+    const rounds=b.rounds||1;
+    for(let r=1;r<=rounds;r++) for(const it of b.items){
+      const ex=EX[it.ex], sets=it.sets||1, amt=scaled(it,lv);
+      for(let s=1;s<=sets;s++) for(const side of ex.sided?['左邊','右邊']:[null]){
+        out.push({kind:ex.kind,ex:it.ex,reps:amt.reps,sec:amt.sec,set:s,sets,side,round:r,rounds,uid:it});
+      }
+    }
+  }
+  // 插入休息
+  const steps=[{kind:'rest',sec:5,label:'準備開始',next:out[0]}];
+  out.forEach((st,i)=>{
+    steps.push(st);
+    const nx=out[i+1]; if(!nx) return;
+    let sec=10,label='休息';
+    if(nx.uid===st.uid && nx.set===st.set && nx.round===st.round){ sec=5; label='換邊'; }
+    else if(nx.uid===st.uid){ sec=15; label='組間休息'; }
+    steps.push({kind:'rest',sec,label,next:nx});
+  });
+  return steps;
+}
+function stepSeconds(st){
+  if(st.kind==='reps'){ const ex=EX[st.ex]; return st.reps*(ex.hold?ex.hold+2:3)+4; }
+  return st.sec;
+}
+const estMin=steps=>Math.max(1,Math.round(steps.reduce((s,x)=>s+stepSeconds(x),0)/60));
+function amtText(st){ return st.reps ? `${st.reps} 下` : `${st.sec} 秒`; }
+function planLines(rid,lv){
+  const R=ROUTINES[rid], lines=[];
+  for(const b of R.blocks){
+    const head = b.rounds>1 ? `【循環 ${b.rounds} 輪】` : '';
+    b.items.forEach((it,j)=>{
+      const ex=EX[it.ex], a=scaled(it,lv);
+      let t=(a.reps?`${a.reps} 下`:`${a.sec} 秒`)+(ex.hold?`（每下停 ${ex.hold} 秒）`:'');
+      if(ex.sided) t+=' ・左右各一';
+      if(it.sets>1) t+=` × ${it.sets} 組`;
+      lines.push(`${j===0?head:''}${ex.emoji} ${ex.name}<span class="amt">　${t}</span>`);
+    });
+  }
+  return lines;
+}
+
+/* ===================== 首頁 ===================== */
+let pickId=null, calOffset=0;
+function todayRid(){ return WEEK[new Date().getDay()]; }
+function renderHome(){
+  const st=stats(), lv=S.settings.level, rid=pickId||todayRid(), R=ROUTINES[rid];
+  const steps=buildSteps(rid,lv), todayKey=dkey(new Date()), doneToday=st.days[todayKey];
+  const atLevel=S.logs.filter(l=>!l.quick&&l.level===lv).length;
+  const el=document.getElementById('home');
+  el.innerHTML=`
+  <header><h1>每日10分鐘 💪</h1><span class="pill">🔥 ${st.streak} 天</span></header>
+  ${S.settings.noticeOk?'':`<div class="card notice"><b>先看一下 ⚠️</b><br>這是一般性的保養訓練，不是醫療建議。動作中出現<b>刺痛、麻、往腿放射</b>就立刻停止；痠痛連續一週沒改善，請給物理治療師或骨科評估。<button class="btn soft" style="margin-top:10px" onclick="S.settings.noticeOk=true;save();renderHome()">了解</button></div>`}
+  <div class="card">
+    <div class="small muted">${pickId?'自選課表':`今天（週${WD[new Date().getDay()]}）的課表`} ・ ${LEVELS[lv].name}</div>
+    <div class="today-title"><span class="emo">${R.emoji}</span><b>${R.name}</b></div>
+    <div>${R.focus.map(f=>`<span class="tag">${f}</span>`).join('')}<span class="tag">約 ${estMin(steps)} 分鐘</span></div>
+    <p class="small muted" style="margin:8px 0 0">${R.desc}</p>
+    ${doneToday?`<div class="done-banner">✅ 今天已完成${doneToday==='quick'?'（忙碌版）':''}！想多練也可以再來一次</div>`:''}
+    <ol class="plan">${planLines(rid,lv).map(l=>`<li>${l}</li>`).join('')}</ol>
+    <button class="btn" onclick="startWorkout('${rid}')">▶ 開始</button>
+    ${rid!=='Q'?`<button class="btn ghost" style="margin-top:10px" onclick="startWorkout('Q')">⚡ 今天好忙：3 分鐘版（也算連續）</button>`:''}
+  </div>
+
+  <div class="card">
+    <h2>本週</h2>
+    <div class="week">${weekStrip(st.days)}</div>
+  </div>
+
+  <div class="card">
+    <h2>換一個課表</h2>
+    <div class="chips">${Object.entries(ROUTINES).map(([k,r])=>`<button class="chip ${k===rid?'on':''}" onclick="pickId=${k===todayRid()?'null':`'${k}'`};renderHome();scrollTo(0,0)">${r.emoji} ${r.name}</button>`).join('')}</div>
+    <p class="small muted" style="margin:10px 0 0">固定排程：一 核心 ・ 二 臀部 ・ 三 全身 ・ 四 核心 ・ 五 臀部 ・ 六 有氧 ・ 日 伸展</p>
+  </div>
+
+  <div class="card">
+    <div class="stats">
+      <div><b>${st.streak}</b><span>連續天數</span></div>
+      <div><b>${st.longest}</b><span>最長紀錄</span></div>
+      <div><b>${st.total}</b><span>總次數</span></div>
+      <div><b>${st.minutes}</b><span>總分鐘</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>難度</h2>
+    <div class="lv">${LEVELS.map((L,i)=>`<button class="${i===lv?'on':''}" onclick="setLevel(${i})">${L.name}</button>`).join('')}</div>
+    <p class="small muted" style="margin:8px 0 0">次數與秒數會跟著難度增加（Lv2 約 ×1.3、Lv3 約 ×1.6）。目前等級已完成 ${atLevel} 次。</p>
+    ${lv<2 && atLevel>=LEVEL_UP_AFTER && painOk()?`<div class="hint">🚀 這個難度你已經完成 ${atLevel} 次，痠痛也沒變嚴重——可以試試升到 ${LEVELS[lv+1].name}！</div>`:''}
+  </div>
+
+  <div class="card">
+    <div class="calnav"><button onclick="calOffset--;renderHome()">‹</button><h2 style="margin:0">${calTitle()}</h2><button onclick="calOffset=Math.min(0,calOffset+1);renderHome()">›</button></div>
+    <div class="cal">${calendar(st.days)}</div>
+    <div class="legend"><span><i style="background:var(--ok)"></i>完整課表</span><span><i style="background:var(--quick)"></i>忙碌版</span></div>
+  </div>
+
+  <div class="card">
+    <h2>痠痛紀錄</h2>
+    ${trend()}
+  </div>
+
+  <div class="card">
+    <h2>徽章</h2>
+    <div class="badges">${BADGES.map(b=>`<div class="badge ${b.ok(st)?'got':''}"><span class="i">${b.i}</span>${b.n}</div>`).join('')}</div>
+  </div>
+
+  <div class="card why">
+    <details><summary>🤔 為什麼這樣排？我原本的伏地挺身＋棒式＋深蹲夠嗎？</summary>
+      <p>你原本的組合是很好的基礎（前側核心、下肢、上肢推），但針對你的狀況<b>少了幾塊關鍵</b>：</p>
+      <ul>
+        <li><b>臀中肌</b>：屁股上緣外側痠、側步蹲和弓箭步特別痠，很常見是久坐讓臀中肌又弱又累。→ 蚌殼式、側躺抬腿、彈力圈側走。</li>
+        <li><b>側向與抗旋轉核心</b>：棒式只練前面。閃過腰的人更需要側棒式、鳥狗式、抗旋轉推，讓腰「不亂動」。</li>
+        <li><b>久坐的緊繃</b>：髖屈肌、胸口會變緊，把骨盆和肩膀往前拉。→ 髖屈肌伸展、門框伸展、彈力繩划船。</li>
+      </ul>
+      <p><b>有氧 vs 肌力？</b>以你的目標（護腰、改善痠痛）來說，這 10 分鐘大約 <b>70% 核心/肌力、20% 伸展、10% 有氧</b>。腰的問題「穩定」比「流汗」重要；有氧建議靠日常補：每坐 45～60 分鐘起來走 2 分鐘、一天走 6000～8000 步。</p>
+      <p><b>暫時沒排弓箭步、側步蹲</b>，因為現在做會痠。練 4～6 週臀中肌、痠痛改善後，再慢慢加回來。</p>
+      <p><b>拉力繩怎麼用：</b>FA020 彈力圈先用<b>黃色</b>（太吃力換藍色），做蚌殼式、臀橋、側走；FE002 長彈力繩用<b>黃色 15 磅</b>做划船、抗旋轉推、大腿後側伸展。</p>
+      <p><b>動作原則：</b>動作慢、控制好、呼吸不憋氣；「痠」可以，「刺痛、麻」就停。</p>
+    </details>
+  </div>
+
+  <div class="card">
+    <details><summary>⚙️ 設定與備份</summary>
+      <label class="switch">倒數提示音<input type="checkbox" ${S.settings.sound?'checked':''} onchange="S.settings.sound=this.checked;save()"></label>
+      <label class="switch">語音報動作名稱<input type="checkbox" ${S.settings.voice?'checked':''} onchange="S.settings.voice=this.checked;save()"></label>
+      <p class="small muted">紀錄只存在這支手機的瀏覽器裡。換手機或清除瀏覽資料前，先複製備份。建議用「加入主畫面」當 App 開。</p>
+      <textarea id="bk" placeholder="備份文字會出現在這裡；要還原就把備份貼進來"></textarea>
+      <div class="row" style="margin-top:8px">
+        <button class="btn soft" onclick="exportData()">複製備份</button>
+        <button class="btn soft" onclick="importData()">從文字還原</button>
+      </div>
+    </details>
+  </div>
+  <p class="small muted" style="text-align:center">每天 10 分鐘，持續比強度重要 🌱</p>`;
+}
+function painOk(){
+  const p=S.logs.filter(l=>l.pain).slice(-5);
+  if(p.length<2) return true;
+  return p[p.length-1].pain.back+p[p.length-1].pain.hip <= p[0].pain.back+p[0].pain.hip;
+}
+function setLevel(i){ S.settings.level=i; S.settings.maxLevel=Math.max(S.settings.maxLevel,i); save(); renderHome(); }
+function weekStrip(m){
+  const now=new Date(), mon=addDays(now,-((now.getDay()+6)%7)); let h='';
+  for(let i=0;i<7;i++){ const d=addDays(mon,i), k=dkey(d), v=m[k];
+    h+=`<div><div class="d">${WD[d.getDay()]}</div><div class="dot ${v==='full'?'done':v==='quick'?'quick':''} ${k===dkey(now)?'today':''}">${v?'✓':ROUTINES[WEEK[d.getDay()]].emoji}</div></div>`; }
+  return h;
+}
+function calBase(){ const n=new Date(); return new Date(n.getFullYear(),n.getMonth()+calOffset,1); }
+function calTitle(){ const b=calBase(); return `${b.getFullYear()} 年 ${b.getMonth()+1} 月`; }
+function calendar(m){
+  const b=calBase(), first=(b.getDay()+6)%7, days=new Date(b.getFullYear(),b.getMonth()+1,0).getDate(), tk=dkey(new Date());
+  let h=['一','二','三','四','五','六','日'].map(x=>`<div class="h">${x}</div>`).join('');
+  for(let i=0;i<first;i++) h+='<div class="c empty"></div>';
+  for(let d=1;d<=days;d++){ const k=dkey(new Date(b.getFullYear(),b.getMonth(),d)), v=m[k];
+    h+=`<div class="c ${v==='full'?'done':v==='quick'?'quick':''} ${k===tk?'today':''}">${d}</div>`; }
+  return h;
+}
+function trend(){
+  const p=S.logs.filter(l=>l.pain).slice(-20);
+  if(p.length<2) return `<p class="small muted" style="margin:0">每次練完記錄一下腰和屁股的痠痛程度（0～10），累積幾次後這裡會畫出趨勢，看得到自己在進步。</p>`;
+  const W=300,H=110,px=i=>10+i*(W-20)/(p.length-1),py=v=>H-8-v*(H-16)/10;
+  const line=(f,c)=>`<polyline fill="none" stroke="${c}" stroke-width="2.5" stroke-linejoin="round" points="${p.map((l,i)=>`${px(i)},${py(f(l))}`).join(' ')}"/>`+p.map((l,i)=>`<circle cx="${px(i)}" cy="${py(f(l))}" r="3" fill="${c}"/>`).join('');
+  return `<svg class="trend" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+    <line x1="0" x2="${W}" y1="${py(5)}" y2="${py(5)}" stroke="var(--line)" stroke-dasharray="4 4"/>
+    ${line(l=>l.pain.back,'var(--fire)')}${line(l=>l.pain.hip,'var(--rest)')}</svg>
+    <div class="legend"><span><i style="background:var(--fire)"></i>腰／尾椎</span><span><i style="background:var(--rest)"></i>屁股外側</span><span>最近 ${p.length} 次，越低越好</span></div>`;
+}
+function exportData(){
+  const t=JSON.stringify(S), ta=document.getElementById('bk'); ta.value=t;
+  try{ navigator.clipboard.writeText(t).then(()=>alert('已複製備份，貼到記事本或傳給自己保存')); }catch(e){ ta.select(); }
+}
+function importData(){
+  try{ const d=JSON.parse(document.getElementById('bk').value); if(!Array.isArray(d.logs)) throw 0;
+    if(!confirm(`要用備份覆蓋目前紀錄嗎？（備份內有 ${d.logs.length} 筆）`)) return;
+    S=d; S.settings=Object.assign({level:0,sound:true,voice:true,maxLevel:0,noticeOk:true},S.settings||{}); save(); renderHome(); alert('還原完成');
+  }catch(e){ alert('備份文字格式不對'); }
+}
+
+/* ===================== 音效 / 語音 / 螢幕常亮 ===================== */
+let actx=null, wakeLock=null;
+function beep(f=880,d=.12){
+  if(!S.settings.sound) return;
+  try{ actx=actx||new (window.AudioContext||window.webkitAudioContext)(); if(actx.state==='suspended') actx.resume();
+    const o=actx.createOscillator(),g=actx.createGain(),t=actx.currentTime;
+    o.frequency.value=f; o.connect(g); g.connect(actx.destination);
+    g.gain.setValueAtTime(.3,t); g.gain.exponentialRampToValueAtTime(.001,t+d); o.start(t); o.stop(t+d);
+  }catch(e){}
+}
+function say(t){
+  if(!S.settings.voice||!('speechSynthesis' in window)) return;
+  try{ speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(t); u.lang='zh-TW'; u.rate=1.05; speechSynthesis.speak(u); }catch(e){}
+}
+async function keepAwake(on){
+  try{
+    if(on && 'wakeLock' in navigator){ wakeLock=await navigator.wakeLock.request('screen'); }
+    else if(!on && wakeLock){ await wakeLock.release(); wakeLock=null; }
+  }catch(e){}
+}
+document.addEventListener('visibilitychange',()=>{ if(W && document.visibilityState==='visible') keepAwake(true); });
+
+/* ===================== 訓練流程 ===================== */
+let W=null, timer=null;
+const $=id=>document.getElementById(id);
+const ARC=276.46;
+function startWorkout(rid){
+  beep(660,.05); // 解鎖 iOS 音效
+  const lv=S.settings.level;
+  W={rid,lv,steps:buildSteps(rid,lv),i:0,startedAt:Date.now(),running:false,endAt:0,left:0,paused:false};
+  $('ov').classList.add('show'); $('wStage').hidden=false; $('wDone').hidden=true;
+  document.body.style.overflow='hidden';
+  keepAwake(true);
+  enter(0);
+  clearInterval(timer); timer=setInterval(tick,200);
+}
+function stepTitle(st){ return `${EX[st.ex].name}${st.side?'・'+st.side:''}`; }
+function enter(i){
+  W.i=i; const st=W.steps[i]; W.paused=false;
+  if(st.kind==='reps'){ W.running=false; }
+  else { W.running=true; W.total=st.sec; W.endAt=Date.now()+st.sec*1000; W.left=st.sec; }
+  if(st.kind==='rest'){
+    say(i===0?`準備，第一個動作：${stepTitle(st.next)}`:`${st.label}，下一個：${stepTitle(st.next)}`);
+  } else {
+    say(`${stepTitle(st)}，${amtText(st)}`);
+    beep(990,.15);
+  }
+  render();
+}
+function tick(){
+  if(!W||!W.running||W.paused) return;
+  const ms=W.endAt-Date.now(), left=Math.ceil(ms/1000);
+  if(left!==W.left){ W.left=left; if(left>0&&left<=3) beep(left===1?880:660,.1); if(navigator.vibrate&&left===0) navigator.vibrate(200); }
+  if(ms<=0){ beep(1200,.3); next(); return; }
+  renderTimer(ms);
+}
+function next(){ if(W.i+1>=W.steps.length) finish(); else enter(W.i+1); }
+function prev(){
+  let j=W.i-1; while(j>0 && W.steps[j].kind==='rest') j--;
+  enter(Math.max(0,j));
+}
+function togglePause(){
+  if(W.paused){ W.endAt=Date.now()+W.pausedMs; W.paused=false; }
+  else { W.pausedMs=W.endAt-Date.now(); W.paused=true; }
+  render();
+}
+function renderTimer(ms){
+  const frac=Math.max(0,ms)/(W.total*1000);
+  $('wArc').style.strokeDashoffset=String(ARC*(1-frac));
+  $('wNum').textContent=Math.max(0,Math.ceil(ms/1000));
+}
+function render(){
+  const st=W.steps[W.i], work=W.steps.filter(s=>s.kind!=='rest').length;
+  const doneWork=W.steps.slice(0,W.i).filter(s=>s.kind!=='rest').length;
+  $('wBar').style.width=(W.i/(W.steps.length-1)*100)+'%';
+  $('wCount').textContent=`${Math.min(work,doneWork+(st.kind==='rest'?0:1))}/${work}`;
+  const isRest=st.kind==='rest', ex=EX[isRest?st.next.ex:st.ex], ref=isRest?st.next:st;
+  $('wRing').classList.toggle('rest',isRest);
+  $('wKicker').textContent=isRest?`${st.label} ・ 下一個`:(ref.rounds>1?`第 ${ref.round}/${ref.rounds} 輪`:'');
+  $('wName').textContent=`${ex.emoji} ${ex.name}`;
+  const meta=[];
+  if(ref.side) meta.push(ref.side);
+  if(ref.sets>1) meta.push(`第 ${ref.set}/${ref.sets} 組`);
+  if(ex.variants) meta.push(ex.variants[W.lv]);
+  if(isRest) meta.push(amtText(ref));
+  if(ex.hold) meta.push(`每下停 ${ex.hold} 秒`);
+  $('wMeta').innerHTML=meta.map(m=>`<span class="tag">${m}</span>`).join('');
+  if(st.kind==='reps'){
+    $('wArc').style.strokeDashoffset='0';
+    $('wNum').textContent=st.reps; $('wUnit').textContent='下';
+    $('wMain').textContent='完成 ✓ 下一個'; $('wMain').className='main';
+  } else {
+    $('wUnit').textContent=isRest?'秒後開始':'秒';
+    renderTimer(W.paused?W.pausedMs:W.endAt-Date.now());
+    $('wMain').textContent=W.paused?'▶ 繼續':'⏸ 暫停';
+    $('wMain').className='main'+(isRest?' restbtn':'');
+  }
+  $('wSkip').textContent=isRest?'開始 ⏭':'跳過 ⏭';
+  $('wPrev').disabled=W.i===0;
+  if(ex.band){ $('wBand').hidden=false; $('wBand').textContent='🎗️ '+ex.band; } else $('wBand').hidden=true;
+  $('wCues').innerHTML=ex.cues.map(c=>`<li>${c}</li>`).join('')+(ex.why?`<li style="background:var(--brand-soft)">${ex.why}</li>`:'');
+  const nx=W.steps.slice(W.i+1).find(s=>s.kind!=='rest');
+  $('wNext').textContent=isRest?'':(nx?`接下來：${EX[nx.ex].emoji} ${stepTitle(nx)}`:'這是最後一個動作，加油！');
+}
+function stopWorkout(){
+  clearInterval(timer); W=null; keepAwake(false);
+  try{ speechSynthesis.cancel(); }catch(e){}
+  $('ov').classList.remove('show'); document.body.style.overflow='';
+  renderHome();
+}
+function finish(){
+  clearInterval(timer);
+  const R=ROUTINES[W.rid], min=Math.max(1,Math.round((Date.now()-W.startedAt)/60000));
+  const before=stats();
+  const log={date:dkey(new Date()),ts:Date.now(),routine:W.rid,min,level:W.lv,quick:!!R.quick};
+  S.logs.push(log); save();
+  const after=stats();
+  const newBadges=BADGES.filter(b=>b.ok(after)&&!b.ok(before));
+  keepAwake(false);
+  say('完成！太棒了');
+  $('wStage').hidden=true;
+  const d=$('wDone'); d.hidden=false;
+  d.innerHTML=`<div class="big">🎉</div><h2>${R.name} 完成！</h2>
+    <p>${CHEERS[Math.floor(Math.random()*CHEERS.length)]}</p>
+    <div class="pill" style="font-size:18px">🔥 連續 ${after.streak} 天</div>
+    ${newBadges.length?`<div class="card" style="margin-top:14px"><b>獲得新徽章！</b><div class="badges" style="margin-top:8px">${newBadges.map(b=>`<div class="badge got"><span class="i">${b.i}</span>${b.n}</div>`).join('')}</div></div>`:''}
+    <div class="pain card">
+      <b>現在的痠痛程度？</b> <span class="small muted">（0 = 完全不痠，10 = 非常痛）</span>
+      <label>腰／尾椎附近 <span class="v" id="pbv">2</span></label>
+      <input type="range" min="0" max="10" value="2" id="pb" oninput="$('pbv').textContent=this.value">
+      <label>屁股上緣外側 <span class="v" id="phv">2</span></label>
+      <input type="range" min="0" max="10" value="2" id="ph" oninput="$('phv').textContent=this.value">
+    </div>
+    <button class="btn" onclick="savePain(${log.ts})">記錄並回首頁</button>
+    <button class="btn ghost" style="margin-top:10px" onclick="stopWorkout()">略過</button>`;
+  confetti();
+}
+function savePain(ts){
+  const l=S.logs.find(x=>x.ts===ts);
+  if(l){ l.pain={back:+$('pb').value,hip:+$('ph').value}; save(); }
+  stopWorkout();
+}
+function confetti(){
+  const box=document.createElement('div'); box.className='confetti';
+  const em=['🎉','✨','💪','🔥','⭐','🟢','🟡','🔵'];
+  for(let i=0;i<50;i++){ const s=document.createElement('span'); s.textContent=em[i%em.length];
+    s.style.left=Math.random()*100+'vw'; s.style.animationDuration=(1.8+Math.random()*1.8)+'s'; s.style.animationDelay=(Math.random()*.6)+'s'; box.appendChild(s); }
+  document.body.appendChild(box); setTimeout(()=>box.remove(),4500);
+}
+$('wMain').onclick=()=>{ const st=W.steps[W.i]; if(st.kind==='reps') next(); else togglePause(); };
+$('wSkip').onclick=()=>next();
+$('wPrev').onclick=()=>prev();
+$('wQuit').onclick=()=>{ if(confirm('要結束嗎？沒做完不會記錄到今天的成績喔')) stopWorkout(); };
+
+renderHome();
+</script>
+</body>
+</html>
