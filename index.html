@@ -222,29 +222,30 @@ const EX = {
 };
 
 /* ===================== 示範影片與常見錯誤 ===================== */
-// yt 可以是陣列：依難度 Lv1/Lv2/Lv3 給不同版本
+// 全部為女性示範者（多數為物理治療師）。s/e = 只循環播放影片中的這一段（秒）
+// 陣列 = 依難度 Lv1/Lv2/Lv3 給不同版本
+const JUICE='啾c物理治療師', YUCI='YUCI物理治療師', QR='全人物理治療所', NULI='女力健身 Nuli App';
 const DEMO = {
-  catcow:{yt:'Qe13fS9Sf6E',by:'練健康 LKK Wellness'},
-  hipflexor:{yt:'dQAE29xW2lQ',by:'Coach Hank 肌力體能訓練'},
-  figure4:{yt:'NbGzZEDyyWI',by:'金姆'},
-  hamstring:{yt:'Z0hDeEfAtnE',by:'山姆伯伯工作坊'},
-  doorway:{yt:'a0UqYB_6i_E',by:'羅伯特物理治療'},
-  curlup:{yt:'I_drRVYlHbc',by:'Prime Health Co.'},
-  sideplank:{yt:['x9sJ4RrofUg','vKTZfpMPVDQ','vKTZfpMPVDQ'],by:['一零教練','Coach Hank 肌力體能訓練','Coach Hank 肌力體能訓練']},
-  birddog:{yt:'bE9E2BrPOq8',by:'練健康 LKK Wellness'},
-  deadbug:{yt:'NpTLUiYDbYc',by:'練健康 LKK Wellness'},
-  plank:{yt:'G5k4CFRsnqw',by:'練健康 LKK Wellness'},
-  glutebridge:{yt:'G0OxI_8JacE',by:'練健康 LKK Wellness'},
-  bandbridge:{yt:'wyOZVybrnJo',by:'愛腎運動'},
-  clamshell:{yt:'o0t6Q7jQ_PM',by:'Coach Hank 肌力體能訓練'},
-  sidelegraise:{yt:'vJzqOzFwXmM',by:'夢想點子館'},
-  monsterwalk:{yt:'KA2N7RGJe5k',by:'女力健身 Nuli App'},
-  squat:{yt:'Yuru3bQEJtg',by:'練健康 LKK Wellness'},
-  pushup:{yt:['vtvZvRbm_Gk','Y2IGO34fEcM','Y2IGO34fEcM'],by:'練健康 LKK Wellness'},
-  bandrow:{yt:'7p2NGhGZ_20',by:'愛胰協會'},
-  pallof:{yt:'5Ip3KO3neJw',by:'Angie Creates 安吉'},
-  march:{yt:'TV5tkdviXpg',by:'蕭孟軒'},
-  lowjack:{yt:'JHdVMkRBuRA',by:'DAREBEE'}
+  catcow:{yt:'YgR5nNR464k',by:YUCI},
+  hipflexor:{yt:'LvUUoiisZP8',by:QR},
+  figure4:{yt:'vdIugUHKGWg',s:40,e:108,by:JUICE},
+  hamstring:{yt:'vdIugUHKGWg',s:177,e:245,by:JUICE},
+  doorway:{yt:'5JR8kiH1G4o',s:107,e:136,by:JUICE},
+  curlup:{yt:'CA59-Ug8Yyc',by:QR},
+  sideplank:[{yt:'jq-jz6opQQU',s:97,e:143,by:NULI},{yt:'jq-jz6opQQU',s:61,e:97,by:NULI},{yt:'jq-jz6opQQU',s:61,e:97,by:NULI}],
+  birddog:{yt:'hMWeJ2EqN64',s:386,e:479,by:JUICE},
+  deadbug:{yt:'9ePFzKtrRl0',s:185,e:226,by:JUICE},
+  plank:{yt:'9ePFzKtrRl0',s:266,e:326,by:JUICE},
+  glutebridge:{yt:'h0iK1956GXc',by:YUCI},
+  bandbridge:{yt:'8de50u4vASg',s:424,e:455,by:JUICE},
+  clamshell:{yt:'8de50u4vASg',s:535,e:578,by:JUICE},
+  sidelegraise:{yt:'3CBevJnW8Pc',s:256,e:312,by:JUICE},
+  monsterwalk:{yt:'8de50u4vASg',s:735,e:776,by:JUICE},
+  squat:{yt:'8de50u4vASg',s:776,e:805,by:JUICE},
+  pushup:[{yt:'dpHruOf5_XQ',by:'鍾佳軒 物理治療師（早安健康）'},{yt:'CBPToKl0JLw',by:NULI},{yt:'CBPToKl0JLw',by:NULI}],
+  bandrow:{yt:'h9iN9flDpI0',by:'早安健康'},
+  pallof:{yt:'hMWeJ2EqN64',s:558,e:650,by:JUICE},
+  march:{yt:'q7rcxGPFvn8',by:'璿子有氧運動健身'}
 };
 const BAD = {
   catcow:['動作太快、用甩的','只有脖子在動，背沒有動'],
@@ -657,27 +658,54 @@ function render(){
 }
 // 同一支影片（例如換邊、下一組）不重新載入，避免一直重播
 function renderVideo(exId){
-  const d=DEMO[exId], box=$('wVid'), id=d?pickLv(d.yt,W.lv):null;
-  $('wRing').classList.toggle('compact',!!id);
-  if(!id){ box.innerHTML=''; W.vid=null; return; }
-  if(W.vid===id) return;
-  W.vid=id;
-  const name=EX[exId].name, by=pickLv(d.by,W.lv);
-  const foot=`<div class="src"><span>示範：${by}</span><a href="https://www.youtube.com/watch?v=${id}" target="_blank" rel="noopener">在 YouTube 開啟 ↗</a></div>`;
-  if(S.settings.video) box.innerHTML=`<div class="frame">${iframe(id)}</div>${foot}`;
-  else box.innerHTML=`<button class="load" onclick="this.outerHTML='<div class=\\'frame\\'>'+iframe('${id}')+'</div>'">▶ 看「${name}」示範影片</button>${foot}`;
+  const d=pickLv(DEMO[exId],W.lv), box=$('wVid'), name=EX[exId].name;
+  const key=d?d.yt+':'+(d.s||0):'none:'+exId;
+  $('wRing').classList.toggle('compact',!!d);
+  if(W.vid===key) return;
+  W.vid=key; killPlayer();
+  if(!d){
+    box.innerHTML=`<div class="src"><span></span><a href="https://www.youtube.com/results?search_query=${encodeURIComponent(name+' 示範')}" target="_blank" rel="noopener">在 YouTube 搜尋「${name}」示範 ↗</a></div>`;
+    return;
+  }
+  const foot=`<div class="src"><span>示範：${d.by}</span><a href="https://www.youtube.com/watch?v=${d.yt}&t=${d.s||0}s" target="_blank" rel="noopener">在 YouTube 開啟 ↗</a></div>`;
+  if(S.settings.video){ box.innerHTML=`<div class="frame"><div id="ytp"></div></div>${foot}`; mountPlayer(d,key); }
+  else {
+    box.innerHTML=`<button class="load" id="vidBtn">▶ 看「${name}」示範影片</button>${foot}`;
+    $('vidBtn').onclick=()=>{ $('vidBtn').outerHTML='<div class="frame"><div id="ytp"></div></div>'; mountPlayer(d,key); };
+  }
 }
-function iframe(id){
-  const q=`autoplay=1&mute=1&playsinline=1&loop=1&playlist=${id}&rel=0&modestbranding=1`;
-  return `<iframe src="https://www.youtube-nocookie.com/embed/${id}?${q}" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen title="示範影片"></iframe>`;
+// 用 YouTube IFrame API 播放，才能只循環影片中的某一段
+let ytReady=null, player=null, segTimer=null;
+function loadYT(){
+  if(!ytReady) ytReady=new Promise(res=>{ window.onYouTubeIframeAPIReady=res;
+    const sc=document.createElement('script'); sc.src='https://www.youtube.com/iframe_api'; document.head.appendChild(sc); });
+  return ytReady;
+}
+async function mountPlayer(d,key){
+  await loadYT();
+  if(!W||W.vid!==key||!$('ytp')) return;
+  const s=d.s||0;
+  player=new YT.Player('ytp',{host:'https://www.youtube-nocookie.com',videoId:d.yt,
+    playerVars:{autoplay:1,mute:1,playsinline:1,rel:0,modestbranding:1,start:s,end:d.e},
+    events:{
+      onReady:e=>{ e.target.mute(); e.target.playVideo(); },
+      onStateChange:e=>{ if(e.data===YT.PlayerState.ENDED){ e.target.seekTo(s,true); e.target.playVideo(); } }
+    }});
+  const p=player;
+  if(d.e) segTimer=setInterval(()=>{ try{ if(p.getCurrentTime()>=d.e) p.seekTo(s,true); }catch(err){} },500);
+}
+function killPlayer(){
+  clearInterval(segTimer); segTimer=null;
+  if(player){ try{ player.destroy(); }catch(e){} player=null; }
 }
 function stopWorkout(){
-  clearInterval(timer); W=null; keepAwake(false); $('wVid').innerHTML='';
+  clearInterval(timer); killPlayer(); W=null; keepAwake(false); $('wVid').innerHTML='';
   try{ speechSynthesis.cancel(); }catch(e){}
   $('ov').classList.remove('show'); document.body.style.overflow='';
   renderHome();
 }
 function finish(){
+  killPlayer();
   clearInterval(timer);
   const R=ROUTINES[W.rid], min=Math.max(1,Math.round((Date.now()-W.startedAt)/60000));
   const before=stats();
