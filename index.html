@@ -141,7 +141,17 @@ svg.trend{width:100%;height:120px;display:block}
 .cues.bad li{background:var(--fire-soft);border-color:transparent}
 .cues.bad li::before{content:"✗";color:var(--fire)}
 .cuehead{width:100%;text-align:left;font-size:13px;font-weight:700;color:var(--muted);margin:2px 0 4px}
-.band{font-size:13px;background:var(--warn-soft);color:var(--warn);padding:6px 10px;border-radius:8px;margin-bottom:10px}
+.band{font-size:13px;background:var(--warn-soft);color:var(--warn);padding:8px 10px;border-radius:8px;margin-bottom:10px;width:100%;text-align:left}
+.band .bw{display:flex;gap:14px;flex-wrap:wrap;margin-top:4px;color:var(--ink);font-size:14px}
+.sw{display:inline-flex;align-items:center;gap:5px;font-weight:700;white-space:nowrap}
+.sw i{width:16px;height:16px;border-radius:50%;border:1.5px solid var(--line);flex:none}
+.sw small{font-weight:400;color:var(--muted);font-size:12px}
+.gear{background:var(--warn-soft);border-radius:12px;padding:10px 12px;margin:0 0 14px;width:100%;text-align:left}
+.gear .gh{font-weight:800;color:var(--warn);margin-bottom:4px}
+.gear table{width:100%;border-collapse:collapse;font-size:14px}
+.gear th{font-size:12px;color:var(--muted);text-align:left;font-weight:600;padding:4px 4px 2px}
+.gear th.gt{color:var(--warn);padding-top:8px}
+.gear td{padding:5px 4px;border-top:1px solid var(--line);vertical-align:middle}
 .nextup{font-size:14px;color:var(--muted);margin-bottom:12px}
 .ctrl{width:100%;display:grid;grid-template-columns:1fr 2fr 1fr;gap:10px;margin-top:auto;position:sticky;bottom:0;background:var(--bg);padding:10px 0 calc(10px + env(safe-area-inset-bottom))}
 .ctrl button{padding:16px 6px;font-size:16px;font-weight:700;background:var(--card);color:var(--ink);border:1px solid var(--line)}
@@ -180,7 +190,7 @@ svg.trend{width:100%;height:120px;display:block}
       <div class="num"><div><span id="wNum"></span><small id="wUnit"></small></div></div>
     </div>
     <div class="band" id="wBand" hidden></div>
-    <div class="cuehead">動作要點</div>
+    <div class="cuehead" id="wCueHead">動作要點</div>
     <ul class="cues" id="wCues"></ul>
     <div class="cuehead" id="wBadHead">⚠️ 常見錯誤</div>
     <ul class="cues bad" id="wBad"></ul>
@@ -327,14 +337,29 @@ function buildSteps(rid,lv){
     else if(nx.uid===st.uid){ sec=15; label='組間休息'; }
     steps.push({kind:'rest',sec,label,next:nx});
   });
+  // 有用到彈力帶的課表，開始前先停在「準備器材」，按了才開始
+  if(gearFor(rid).length) steps.unshift({kind:'gear',next:out[0]});
   return steps;
 }
+const isWork=st=>st.kind==='reps'||st.kind==='time';
 function stepSeconds(st){
+  if(st.kind==='gear') return 0;
   if(st.kind==='reps'){ const ex=EX[st.ex]; return st.reps*(ex.hold?ex.hold+2:3)+4; }
   return st.sec;
 }
 const estMin=steps=>Math.max(1,Math.round(steps.reduce((s,x)=>s+stepSeconds(x),0)/60));
 function amtText(st){ return st.reps ? `${st.reps} 下` : `${st.sec} 秒`; }
+// 彈力帶色塊：● 藍 10–12 磅
+function swatch(type,c){ return `<span class="sw"><i style="background:${BAND_HEX[c]}"></i>${c}<small>${BANDS[type].lb[c]}</small></span>`; }
+// 準備器材表：每個用到彈力帶的動作，男生／女生各拿哪條
+function gearTable(rid,lv){
+  const list=gearFor(rid); if(!list.length) return '';
+  const rows=['loop','tube'].map(type=>{
+    const items=list.filter(x=>x.g.type===type); if(!items.length) return '';
+    return `<tr><th colspan="3" class="gt">${BANDS[type].full}</th></tr>`+items.map(x=>`<tr><td>${EX[x.ex].name}</td><td>${swatch(type,gearColor(x.g,'m',lv))}</td><td>${swatch(type,gearColor(x.g,'f',lv))}</td></tr>`).join('');
+  }).join('');
+  return `<div class="gear"><div class="gh">🎗️ 今天要準備的彈力帶</div><table><tr><th></th><th>👨 男生</th><th>👩 女生</th></tr>${rows}</table></div>`;
+}
 function planLines(rid,lv){
   const R=ROUTINES[rid], lines=[];
   for(const b of R.blocks){
@@ -368,6 +393,7 @@ function renderHome(){
     <p class="small muted" style="margin:8px 0 0">${R.desc}</p>
     ${doneToday?`<div class="done-banner">✅ 今天已完成${doneToday==='quick'?'（忙碌版）':''}！想多練也可以再來一次</div>`:''}
     <ol class="plan">${planLines(rid,lv).map(l=>`<li>${l}</li>`).join('')}</ol>
+    ${gearTable(rid,lv)}
     <button class="btn" onclick="startWorkout('${rid}')">▶ 開始</button>
     ${rid!=='Q'?`<button class="btn ghost" style="margin-top:10px" onclick="startWorkout('Q')">⚡ 今天好忙：3 分鐘版（也算連續）</button>`:''}
   </div>
@@ -425,7 +451,7 @@ function renderHome(){
       </ul>
       <p><b>有氧 vs 肌力？</b>以你的目標（護腰、改善痠痛）來說，這 10 分鐘大約 <b>70% 核心/肌力、20% 伸展、10% 有氧</b>。腰的問題「穩定」比「流汗」重要；有氧建議靠日常補：每坐 45～60 分鐘起來走 2 分鐘、一天走 6000～8000 步。</p>
       <p><b>暫時沒排弓箭步、側步蹲</b>，因為現在做會痠。練 4～6 週臀中肌、痠痛改善後，再慢慢加回來。</p>
-      <p><b>拉力繩怎麼用：</b>FA020 彈力圈先用<b>黃色</b>（太吃力換藍色），做蚌殼式、臀橋、側走；FE002 長彈力繩用<b>黃色 15 磅</b>做划船、抗旋轉推、大腿後側伸展。</p>
+      <p><b>拉力繩怎麼用：</b>每天的課表卡片會列出「今天要準備的彈力帶」，男生、女生各拿哪個顏色都寫好了；兩人一起練時，同一個動作男女顏色會錯開，不會搶同一條。太輕或太重就往上、往下換一個顏色。</p>
       <p><b>動作原則：</b>動作慢、控制好、呼吸不憋氣；「痠」可以，「刺痛、麻」就停。</p>
     </details>
   </div>
@@ -566,6 +592,7 @@ function preloadVoice(steps){
   if(!useHQ()||!voiceFiles.size) return;
   const lines=new Set([DONE_LINE,restLine(null,true)]);
   for(const st of steps){
+    if(st.kind==='gear'){ lines.add(gearLine(W.rid,W.lv)); continue; }
     if(st.kind==='rest'){ lines.add(restLine(st.label)); continue; }
     const ex=EX[st.ex]; lines.add(ex.name); lines.add(amtLine(st)); lines.add(cueLine(ex));
     if(st.side) lines.add(st.side); if(ex.hold) lines.add(holdLine(ex.hold));
@@ -606,10 +633,12 @@ function startWorkout(rid){
 function stepTitle(st){ return `${EX[st.ex].name}${st.side?'・'+st.side:''}`; }
 function enter(i){
   W.i=i; const st=W.steps[i]; W.paused=false;
-  if(st.kind==='reps'){ W.running=false; }
+  if(st.kind==='reps'||st.kind==='gear'){ W.running=false; }
   else { W.running=true; W.total=st.sec; W.endAt=Date.now()+st.sec*1000; W.left=st.sec; }
-  if(st.kind==='rest'){
-    say([restLine(st.label,i===0),EX[st.next.ex].name,st.next.side]);
+  if(st.kind==='gear'){
+    say(gearLine(W.rid,W.lv));
+  } else if(st.kind==='rest'){
+    say([restLine(st.label,st.label==='準備開始'),EX[st.next.ex].name,st.next.side]);
   } else {
     const ex=EX[st.ex], parts=[ex.name,st.side,amtLine(st),ex.hold&&holdLine(ex.hold)];
     // 動作要點每個動作只講一次（換邊、下一組、下一輪不重複）
@@ -642,10 +671,22 @@ function renderTimer(ms){
   $('wNum').textContent=Math.max(0,Math.ceil(ms/1000));
 }
 function render(){
-  const st=W.steps[W.i], work=W.steps.filter(s=>s.kind!=='rest').length;
-  const doneWork=W.steps.slice(0,W.i).filter(s=>s.kind!=='rest').length;
+  const st=W.steps[W.i], work=W.steps.filter(isWork).length;
+  const doneWork=W.steps.slice(0,W.i).filter(isWork).length;
   $('wBar').style.width=(W.i/(W.steps.length-1)*100)+'%';
-  $('wCount').textContent=`${Math.min(work,doneWork+(st.kind==='rest'?0:1))}/${work}`;
+  $('wCount').textContent=`${Math.min(work,doneWork+(isWork(st)?1:0))}/${work}`;
+  if(st.kind==='gear'){
+    killPlayer(); W.vid=null; $('wVid').innerHTML='';
+    $('wRing').hidden=true; $('wRing').classList.remove('compact');
+    $('wKicker').textContent='開始前'; $('wName').textContent='🎗️ 準備器材'; $('wMeta').innerHTML='';
+    $('wBand').className=''; $('wBand').hidden=false; $('wBand').innerHTML=gearTable(W.rid,W.lv);
+    $('wCueHead').hidden=true; $('wBadHead').hidden=true; $('wCues').innerHTML=''; $('wBad').innerHTML='';
+    $('wNext').textContent=`第一個動作：${EX[st.next.ex].emoji} ${stepTitle(st.next)}`;
+    $('wMain').textContent='準備好了 ▶ 開始'; $('wMain').className='main';
+    $('wSkip').textContent='跳過 ⏭'; $('wPrev').disabled=true;
+    return;
+  }
+  $('wRing').hidden=false; $('wCueHead').hidden=false; $('wBand').className='band';
   const isRest=st.kind==='rest', ex=EX[isRest?st.next.ex:st.ex], ref=isRest?st.next:st;
   $('wRing').classList.toggle('rest',isRest);
   $('wKicker').textContent=isRest?`${st.label} ・ 下一個`:(ref.rounds>1?`第 ${ref.round}/${ref.rounds} 輪`:'');
@@ -669,12 +710,16 @@ function render(){
   }
   $('wSkip').textContent=isRest?'開始 ⏭':'跳過 ⏭';
   $('wPrev').disabled=W.i===0;
-  if(ex.band){ $('wBand').hidden=false; $('wBand').textContent='🎗️ '+ex.band; } else $('wBand').hidden=true;
+  const g=ex.gear;
+  if(g){
+    $('wBand').hidden=false;
+    $('wBand').innerHTML=`🎗️ ${BANDS[g.type].full}・${g.how}<div class="bw"><span>👨 ${swatch(g.type,gearColor(g,'m',W.lv))}</span><span>👩 ${swatch(g.type,gearColor(g,'f',W.lv))}</span></div>`;
+  } else $('wBand').hidden=true;
   $('wCues').innerHTML=ex.cues.map(c=>`<li>${c}</li>`).join('')+(ex.why?`<li style="background:var(--brand-soft)">${ex.why}</li>`:'');
   const bad=BAD[isRest?st.next.ex:st.ex]||[];
   $('wBadHead').hidden=!bad.length; $('wBad').innerHTML=bad.map(c=>`<li>${c}</li>`).join('');
   renderVideo(isRest?st.next.ex:st.ex);
-  const nx=W.steps.slice(W.i+1).find(s=>s.kind!=='rest');
+  const nx=W.steps.slice(W.i+1).find(isWork);
   $('wNext').textContent=isRest?'':(nx?`接下來：${EX[nx.ex].emoji} ${stepTitle(nx)}`:'這是最後一個動作，加油！');
 }
 // 同一支影片（例如換邊、下一組）不重新載入，避免一直重播
@@ -765,7 +810,7 @@ function confetti(){
     s.style.left=Math.random()*100+'vw'; s.style.animationDuration=(1.8+Math.random()*1.8)+'s'; s.style.animationDelay=(Math.random()*.6)+'s'; box.appendChild(s); }
   document.body.appendChild(box); setTimeout(()=>box.remove(),4500);
 }
-$('wMain').onclick=()=>{ const st=W.steps[W.i]; if(st.kind==='reps') next(); else togglePause(); };
+$('wMain').onclick=()=>{ const st=W.steps[W.i]; if(st.kind==='reps'||st.kind==='gear') next(); else togglePause(); };
 $('wSkip').onclick=()=>next();
 $('wPrev').onclick=()=>prev();
 $('wQuit').onclick=()=>{ if(confirm('要結束嗎？沒做完不會記錄到今天的成績喔')) stopWorkout(); };
