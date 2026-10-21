@@ -19,8 +19,8 @@ const EX = {
   monsterwalk:{name:'彈力圈側走',emoji:'🦀',kind:'time',gear:{type:'loop',m:['藍','黃','紅'],f:['綠','藍','黃'],how:'套膝蓋上方（想更難就套腳踝）'},cues:['微蹲、背打直','往側邊走 8～10 步，再走回來','膝蓋不要往內夾，步伐小而穩'],why:'臀中肌＋骨盆穩定'},
   squat:{name:'深蹲',emoji:'🏋️',kind:'reps',cues:['腳與肩同寬，腳尖微朝外','屁股往後坐，膝蓋和腳尖同方向','蹲到不痛的深度，站起時夾屁股'],why:'下肢基礎力量'},
   pushup:{name:'伏地挺身',emoji:'💪',kind:'reps',variants:['跪膝版或標準版皆可','標準版','標準版（可放慢下降 3 秒）'],cues:['手略寬於肩，身體成一直線','下降時手肘約 45 度，不要往外開','核心收緊，腰不要塌'],why:'上肢推力＋核心'},
-  bandrow:{name:'彈力繩划船',emoji:'🚣',kind:'reps',gear:{type:'tube',m:'紅',f:'黃',how:'中段繞門把或踩在腳下；雙手握近一點會更重'},cues:['雙手各握一端，站穩','手肘往後拉，肩胛骨往中間夾','慢慢放回，不要聳肩'],why:'強化上背，對抗久坐駝背'},
-  pallof:{name:'彈力繩抗旋轉推',emoji:'🛡️',kind:'reps',sided:true,gear:{type:'tube',m:'紅',f:'黃',how:'固定在胸口高度、身體側邊；站離固定點近一點會比較輕'},cues:['側對固定點站穩，雙手握繩在胸前','把手往前推直，停 2 秒再收回','身體不要被繩子拉轉——這就是核心在出力'],why:'抗旋轉核心，保護腰椎最實用的練法'},
+  bandrow:{name:'彈力繩坐姿划船',emoji:'🚣',kind:'reps',gear:{type:'tube',m:'紅',f:'黃',how:'坐在地上，中段套在兩腳腳底；雙手握近一點會更重'},cues:['坐在地上雙腳伸直，大腿後側太緊可以微彎膝','繩子中段套在兩腳腳底，雙手各握一端，背坐直','手肘貼著身體往後拉、肩胛骨往中間夾，再慢慢放回'],why:'強化上背，對抗久坐駝背'},
+  shouldertap:{name:'棒式摸肩',emoji:'🤚',kind:'reps',variants:['跪膝版','標準版（雙腳打開）','標準版（雙腳併攏較難）'],cues:['手掌撐在肩膀正下方，雙腳打開比肩寬（跪膝版就膝蓋著地）','一手輕摸對側肩膀再放回，左右交替各算一下','骨盆不要左右晃，想像腰上放一杯水'],why:'不需要固定點的抗旋轉核心訓練，保護腰椎'},
   march:{name:'原地高抬腿踏步',emoji:'🚶',kind:'time',cues:['原地踏步，膝蓋抬到髖的高度','手臂一起擺動','想多流汗就加快速度'],why:'暖身＋提高心跳'},
   lowjack:{name:'無跳開合跳',emoji:'⭐',kind:'time',cues:['一腳往側邊踏出，雙手同時往上舉','左右交替，加快速度','不用跳，保護膝蓋與腰'],why:'低衝擊有氧'}
 };
@@ -40,7 +40,7 @@ const ROUTINES = {
   ]},
   C:{name:'全身肌力日',emoji:'💪',focus:['全身','姿勢'],desc:'你原本的深蹲＋伏地挺身＋棒式，再加上背部與抗旋轉',blocks:[
     {items:[{ex:'march',sec:45}]},
-    {items:[{ex:'squat',reps:12,sets:2},{ex:'pushup',reps:10,sets:2},{ex:'bandrow',reps:15,sets:2},{ex:'pallof',reps:10},{ex:'plank',sec:30,sets:2}]},
+    {items:[{ex:'squat',reps:12,sets:2},{ex:'pushup',reps:10,sets:2},{ex:'bandrow',reps:15,sets:2},{ex:'shouldertap',reps:16},{ex:'plank',sec:30,sets:2}]},
     {items:[{ex:'doorway',sec:30}]}
   ]},
   D:{name:'輕有氧循環',emoji:'🔥',focus:['有氧','流汗'],desc:'低衝擊循環 2 輪，心跳拉起來但不傷腰',blocks:[
