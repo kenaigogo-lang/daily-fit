@@ -329,7 +329,7 @@ function load(){
   try{ d=JSON.parse(localStorage.getItem(KEY)); }catch(e){}
   d = d||{};
   d.logs = d.logs||[];
-  d.settings = Object.assign({level:0,sound:true,voice:true,video:true,maxLevel:0,noticeOk:false},d.settings||{});
+  d.settings = Object.assign({level:0,sound:true,voice:true,video:true,cueVoice:true,rate:1.3,voiceName:'',maxLevel:0,noticeOk:false},d.settings||{});
   return d;
 }
 let S = load();
@@ -494,6 +494,17 @@ function renderHome(){
     <details><summary>⚙️ 設定與備份</summary>
       <label class="switch">倒數提示音<input type="checkbox" ${S.settings.sound?'checked':''} onchange="S.settings.sound=this.checked;save()"></label>
       <label class="switch">語音報動作名稱<input type="checkbox" ${S.settings.voice?'checked':''} onchange="S.settings.voice=this.checked;save()"></label>
+      <label class="switch">語音說明動作要點（每個動作講一次）<input type="checkbox" ${S.settings.cueVoice?'checked':''} onchange="S.settings.cueVoice=this.checked;save()"></label>
+      <div class="switch" style="display:block">
+        <div>語音</div>
+        <select id="voiceSel" style="width:100%;margin:6px 0;padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:inherit;font-size:14px" onchange="S.settings.voiceName=this.value;save()"></select>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span class="small">語速 <b id="rateV">${S.settings.rate.toFixed(2)}</b>×</span>
+          <input type="range" min="0.9" max="1.8" step="0.05" value="${S.settings.rate}" style="flex:1;accent-color:var(--brand)" oninput="S.settings.rate=+this.value;$('rateV').textContent=(+this.value).toFixed(2);save()">
+          <button class="chip" onclick="testVoice()">🔊 試聽</button>
+        </div>
+        <p class="small muted" style="margin:6px 0 0">會自動挑台灣女聲。iPhone 可到「設定 › 輔助使用 › 朗讀內容 › 聲音 › 中文（台灣）」下載「美佳（加強版）」；電腦用 Edge 開會有更自然的「HsiaoChen」聲音。</p>
+      </div>
       <label class="switch">自動播放示範影片（靜音循環）<input type="checkbox" ${S.settings.video?'checked':''} onchange="S.settings.video=this.checked;save()"></label>
       <p class="small muted">影片來自 YouTube，會用到網路流量；行動網路吃緊時可以關掉，改成需要時再點開。</p>
       <p class="small muted">紀錄只存在這支手機的瀏覽器裡。換手機或清除瀏覽資料前，先複製備份。建議用「加入主畫面」當 App 開。</p>
@@ -505,6 +516,12 @@ function renderHome(){
     </details>
   </div>
   <p class="small muted" style="text-align:center">每天 10 分鐘，持續比強度重要 🌱</p>`;
+  fillVoiceSelect();
+}
+function testVoice(){
+  const on=S.settings.voice; S.settings.voice=true;
+  say('彈力圈蚌殼式，左邊，15下。側躺，髖與膝彎約45度。腳跟貼在一起，上面的膝蓋往上打開。');
+  S.settings.voice=on;
 }
 function painOk(){
   const p=S.logs.filter(l=>l.pain).slice(-5);
@@ -545,7 +562,7 @@ function exportData(){
 function importData(){
   try{ const d=JSON.parse(document.getElementById('bk').value); if(!Array.isArray(d.logs)) throw 0;
     if(!confirm(`要用備份覆蓋目前紀錄嗎？（備份內有 ${d.logs.length} 筆）`)) return;
-    S=d; S.settings=Object.assign({level:0,sound:true,voice:true,video:true,maxLevel:0,noticeOk:true},S.settings||{}); save(); renderHome(); alert('還原完成');
+    S=d; S.settings=Object.assign({level:0,sound:true,voice:true,video:true,cueVoice:true,rate:1.3,voiceName:'',maxLevel:0,noticeOk:true},S.settings||{}); save(); renderHome(); alert('還原完成');
   }catch(e){ alert('備份文字格式不對'); }
 }
 
@@ -559,9 +576,36 @@ function beep(f=880,d=.12){
     g.gain.setValueAtTime(.3,t); g.gain.exponentialRampToValueAtTime(.001,t+d); o.start(t); o.stop(t+d);
   }catch(e){}
 }
+// 優先挑台灣女聲：Edge 的 HsiaoChen/HsiaoYu（自然語音）、Windows 的 Hanhan/Yating、iPhone 的美佳、Android 的 Google 國語（臺灣）
+const TW_FEMALE=/HsiaoChen|HsiaoYu|曉臻|曉雨|Hanhan|Yating|Mei-?Jia|美佳|Google.*(臺灣|台灣|Taiwan)/i;
+const TW_MALE=/Zhiwei|YunJhe|Yun-?Jhe|志偉|雲哲/i;
+const isTW=v=>/zh[-_]TW|cmn[-_]Hant[-_]TW/i.test(v.lang);
+function zhVoices(){
+  try{ return speechSynthesis.getVoices().filter(v=>/^(zh|cmn|yue)/i.test(v.lang)); }catch(e){ return []; }
+}
+function rankVoice(v){
+  return (isTW(v)?100:0)+(TW_FEMALE.test(v.name)?50:0)-(TW_MALE.test(v.name)?80:0)+(/Natural|Online|Neural|Premium|Enhanced/i.test(v.name)?20:0);
+}
+function pickVoice(){
+  const vs=zhVoices();
+  if(S.settings.voiceName){ const v=vs.find(x=>x.name===S.settings.voiceName); if(v) return v; }
+  return vs.sort((a,b)=>rankVoice(b)-rankVoice(a))[0]||null;
+}
 function say(t){
   if(!S.settings.voice||!('speechSynthesis' in window)) return;
-  try{ speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(t); u.lang='zh-TW'; u.rate=1.05; speechSynthesis.speak(u); }catch(e){}
+  try{
+    speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(t), v=pickVoice();
+    if(v){ u.voice=v; u.lang=v.lang; } else u.lang='zh-TW';
+    u.rate=S.settings.rate; speechSynthesis.speak(u);
+  }catch(e){}
+}
+// 語音清單是非同步載入的，載好後更新設定頁的下拉選單
+try{ speechSynthesis.onvoiceschanged=()=>{ if(!W) fillVoiceSelect(); }; }catch(e){}
+function fillVoiceSelect(){
+  const sel=document.getElementById('voiceSel'); if(!sel) return;
+  const vs=zhVoices().sort((a,b)=>rankVoice(b)-rankVoice(a)), cur=pickVoice();
+  sel.innerHTML=vs.length?vs.map(v=>`<option value="${v.name}" ${cur&&cur.name===v.name?'selected':''}>${v.name}（${v.lang}）</option>`).join(''):'<option>這個瀏覽器沒有中文語音</option>';
 }
 async function keepAwake(on){
   try{
@@ -578,7 +622,7 @@ const ARC=276.46;
 function startWorkout(rid){
   beep(660,.05); // 解鎖 iOS 音效
   const lv=S.settings.level;
-  W={rid,lv,steps:buildSteps(rid,lv),i:0,startedAt:Date.now(),running:false,endAt:0,left:0,paused:false};
+  W={rid,lv,steps:buildSteps(rid,lv),i:0,startedAt:Date.now(),running:false,endAt:0,left:0,paused:false,cued:new Set()};
   $('ov').classList.add('show'); $('wStage').hidden=false; $('wDone').hidden=true;
   document.body.style.overflow='hidden';
   keepAwake(true);
@@ -586,14 +630,19 @@ function startWorkout(rid){
   clearInterval(timer); timer=setInterval(tick,200);
 }
 function stepTitle(st){ return `${EX[st.ex].name}${st.side?'・'+st.side:''}`; }
+function speakTitle(st){ return `${EX[st.ex].name}${st.side?'，'+st.side:''}`; }
 function enter(i){
   W.i=i; const st=W.steps[i]; W.paused=false;
   if(st.kind==='reps'){ W.running=false; }
   else { W.running=true; W.total=st.sec; W.endAt=Date.now()+st.sec*1000; W.left=st.sec; }
   if(st.kind==='rest'){
-    say(i===0?`準備，第一個動作：${stepTitle(st.next)}`:`${st.label}，下一個：${stepTitle(st.next)}`);
+    say(i===0?`準備，第一個動作：${speakTitle(st.next)}`:`${st.label}，下一個：${speakTitle(st.next)}`);
   } else {
-    say(`${stepTitle(st)}，${amtText(st)}`);
+    const ex=EX[st.ex];
+    let t=`${speakTitle(st)}，${amtText(st)}${ex.hold?`，每下停${ex.hold}秒`:''}。`;
+    // 動作要點每個動作只講一次（換邊、下一組、下一輪不重複）
+    if(S.settings.cueVoice && !W.cued.has(st.ex)){ W.cued.add(st.ex); t+=ex.cues.join('。')+'。'; }
+    say(t);
     beep(990,.15);
   }
   render();
