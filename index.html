@@ -130,6 +130,17 @@ svg.trend{width:100%;height:120px;display:block}
 .cues{list-style:none;padding:0;margin:4px 0 12px;text-align:left;width:100%}
 .cues li{padding:8px 12px 8px 34px;position:relative;background:var(--card);border:1px solid var(--line);border-radius:10px;margin-bottom:6px;font-size:15px}
 .cues li::before{content:"✓";position:absolute;left:12px;color:var(--brand);font-weight:800}
+.vid{width:100%;margin:10px 0 2px}
+.vid .frame{width:100%;aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:#000}
+.vid iframe{width:100%;height:100%;border:0;display:block}
+.vid .src{font-size:12px;color:var(--muted);margin-top:4px;display:flex;justify-content:space-between;gap:8px}
+.vid .src a{color:var(--brand)}
+.vid .load{width:100%;padding:12px;background:var(--card);color:var(--brand);border:1.5px dashed var(--brand);font-weight:700}
+.ring.compact{width:min(38vw,150px);margin:8px auto}
+.ring.compact .num{font-size:44px}
+.cues.bad li{background:var(--fire-soft);border-color:transparent}
+.cues.bad li::before{content:"✗";color:var(--fire)}
+.cuehead{width:100%;text-align:left;font-size:13px;font-weight:700;color:var(--muted);margin:2px 0 4px}
 .band{font-size:13px;background:var(--warn-soft);color:var(--warn);padding:6px 10px;border-radius:8px;margin-bottom:10px}
 .nextup{font-size:14px;color:var(--muted);margin-bottom:12px}
 .ctrl{width:100%;display:grid;grid-template-columns:1fr 2fr 1fr;gap:10px;margin-top:auto;padding-bottom:env(safe-area-inset-bottom)}
@@ -163,12 +174,16 @@ svg.trend{width:100%;height:120px;display:block}
     <div class="kicker" id="wKicker"></div>
     <div class="name" id="wName"></div>
     <div class="meta" id="wMeta"></div>
+    <div class="vid" id="wVid"></div>
     <div class="ring" id="wRing">
       <svg viewBox="0 0 100 100"><circle class="bg" cx="50" cy="50" r="44"/><circle class="fg" id="wArc" cx="50" cy="50" r="44" stroke-dasharray="276.46" stroke-dashoffset="0"/></svg>
       <div class="num"><div><span id="wNum"></span><small id="wUnit"></small></div></div>
     </div>
     <div class="band" id="wBand" hidden></div>
+    <div class="cuehead">動作要點</div>
     <ul class="cues" id="wCues"></ul>
+    <div class="cuehead" id="wBadHead">⚠️ 常見錯誤</div>
+    <ul class="cues bad" id="wBad"></ul>
     <div class="nextup" id="wNext"></div>
     <div class="ctrl">
       <button id="wPrev">⏮ 上一步</button>
@@ -205,6 +220,56 @@ const EX = {
   march:{name:'原地高抬腿踏步',emoji:'🚶',kind:'time',cues:['原地踏步，膝蓋抬到髖的高度','手臂一起擺動','想多流汗就加快速度'],why:'暖身＋提高心跳'},
   lowjack:{name:'無跳開合跳',emoji:'⭐',kind:'time',cues:['一腳往側邊踏出，雙手同時往上舉','左右交替，加快速度','不用跳，保護膝蓋與腰'],why:'低衝擊有氧'}
 };
+
+/* ===================== 示範影片與常見錯誤 ===================== */
+// yt 可以是陣列：依難度 Lv1/Lv2/Lv3 給不同版本
+const DEMO = {
+  catcow:{yt:'Qe13fS9Sf6E',by:'練健康 LKK Wellness'},
+  hipflexor:{yt:'dQAE29xW2lQ',by:'Coach Hank 肌力體能訓練'},
+  figure4:{yt:'NbGzZEDyyWI',by:'金姆'},
+  hamstring:{yt:'Z0hDeEfAtnE',by:'山姆伯伯工作坊'},
+  doorway:{yt:'a0UqYB_6i_E',by:'羅伯特物理治療'},
+  curlup:{yt:'I_drRVYlHbc',by:'Prime Health Co.'},
+  sideplank:{yt:['x9sJ4RrofUg','vKTZfpMPVDQ','vKTZfpMPVDQ'],by:['一零教練','Coach Hank 肌力體能訓練','Coach Hank 肌力體能訓練']},
+  birddog:{yt:'bE9E2BrPOq8',by:'練健康 LKK Wellness'},
+  deadbug:{yt:'NpTLUiYDbYc',by:'練健康 LKK Wellness'},
+  plank:{yt:'G5k4CFRsnqw',by:'練健康 LKK Wellness'},
+  glutebridge:{yt:'G0OxI_8JacE',by:'練健康 LKK Wellness'},
+  bandbridge:{yt:'wyOZVybrnJo',by:'愛腎運動'},
+  clamshell:{yt:'o0t6Q7jQ_PM',by:'Coach Hank 肌力體能訓練'},
+  sidelegraise:{yt:'vJzqOzFwXmM',by:'夢想點子館'},
+  monsterwalk:{yt:'KA2N7RGJe5k',by:'女力健身 Nuli App'},
+  squat:{yt:'Yuru3bQEJtg',by:'練健康 LKK Wellness'},
+  pushup:{yt:['vtvZvRbm_Gk','Y2IGO34fEcM','Y2IGO34fEcM'],by:'練健康 LKK Wellness'},
+  bandrow:{yt:'7p2NGhGZ_20',by:'愛胰協會'},
+  pallof:{yt:'5Ip3KO3neJw',by:'Angie Creates 安吉'},
+  march:{yt:'TV5tkdviXpg',by:'蕭孟軒'},
+  lowjack:{yt:'JHdVMkRBuRA',by:'DAREBEE'}
+};
+const BAD = {
+  catcow:['動作太快、用甩的','只有脖子在動，背沒有動'],
+  hipflexor:['腰往前拱（骨盆前傾）','沒夾屁股，只是把身體往前倒'],
+  figure4:['硬拉到會痛','頭和肩膀跟著用力抬起來'],
+  hamstring:['伸展的那隻腳膝蓋彎掉','另一隻腳離地、骨盆翻起來'],
+  doorway:['聳肩','手肘高過肩膀太多，壓到肩膀前側'],
+  curlup:['抬太高變成仰臥起坐','用手把頭往上拉','下背用力壓平貼地'],
+  sideplank:['屁股往後坐或往下垂','肩膀聳到耳朵旁邊'],
+  birddog:['腳抬太高，腰跟著拱起來','骨盆往旁邊轉','動作太快沒有停住'],
+  deadbug:['下背離地拱起','憋氣','手腳放太快'],
+  plank:['塌腰','屁股翹太高','憋氣'],
+  glutebridge:['推太高，變成用腰拱起來','膝蓋往內夾','用腳尖推地'],
+  bandbridge:['膝蓋被圈拉往內','頂端腰拱起來'],
+  clamshell:['骨盆往後翻（身體跟著轉）','兩個腳跟分開','用甩的，沒控制慢慢放'],
+  sidelegraise:['腳尖朝天花板（變成大腿前側出力）','身體往後倒','抬太高，腰跟著側彎'],
+  monsterwalk:['膝蓋往內夾','身體左右晃','站直沒有微蹲'],
+  squat:['膝蓋往內夾','腳跟離地','下蹲時腰拱起或圓背'],
+  pushup:['塌腰','手肘往外開成 90 度','頭往前伸'],
+  bandrow:['聳肩','身體往後倒來借力','手腕彎折'],
+  pallof:['身體被繩子拉轉','聳肩','憋氣'],
+  march:['身體往後仰','腳落地太重'],
+  lowjack:['跳起來（這個版本不用跳）','膝蓋往內夾']
+};
+const pickLv=(v,lv)=>Array.isArray(v)?v[lv]:v;
 
 /* ===================== 課表 ===================== */
 // blocks: 每個 block 可以設 rounds（循環幾輪）；item: reps/sec、sets
@@ -263,7 +328,7 @@ function load(){
   try{ d=JSON.parse(localStorage.getItem(KEY)); }catch(e){}
   d = d||{};
   d.logs = d.logs||[];
-  d.settings = Object.assign({level:0,sound:true,voice:true,maxLevel:0,noticeOk:false},d.settings||{});
+  d.settings = Object.assign({level:0,sound:true,voice:true,video:true,maxLevel:0,noticeOk:false},d.settings||{});
   return d;
 }
 let S = load();
@@ -428,6 +493,8 @@ function renderHome(){
     <details><summary>⚙️ 設定與備份</summary>
       <label class="switch">倒數提示音<input type="checkbox" ${S.settings.sound?'checked':''} onchange="S.settings.sound=this.checked;save()"></label>
       <label class="switch">語音報動作名稱<input type="checkbox" ${S.settings.voice?'checked':''} onchange="S.settings.voice=this.checked;save()"></label>
+      <label class="switch">自動播放示範影片（靜音循環）<input type="checkbox" ${S.settings.video?'checked':''} onchange="S.settings.video=this.checked;save()"></label>
+      <p class="small muted">影片來自 YouTube，會用到網路流量；行動網路吃緊時可以關掉，改成需要時再點開。</p>
       <p class="small muted">紀錄只存在這支手機的瀏覽器裡。換手機或清除瀏覽資料前，先複製備份。建議用「加入主畫面」當 App 開。</p>
       <textarea id="bk" placeholder="備份文字會出現在這裡；要還原就把備份貼進來"></textarea>
       <div class="row" style="margin-top:8px">
@@ -477,7 +544,7 @@ function exportData(){
 function importData(){
   try{ const d=JSON.parse(document.getElementById('bk').value); if(!Array.isArray(d.logs)) throw 0;
     if(!confirm(`要用備份覆蓋目前紀錄嗎？（備份內有 ${d.logs.length} 筆）`)) return;
-    S=d; S.settings=Object.assign({level:0,sound:true,voice:true,maxLevel:0,noticeOk:true},S.settings||{}); save(); renderHome(); alert('還原完成');
+    S=d; S.settings=Object.assign({level:0,sound:true,voice:true,video:true,maxLevel:0,noticeOk:true},S.settings||{}); save(); renderHome(); alert('還原完成');
   }catch(e){ alert('備份文字格式不對'); }
 }
 
@@ -582,11 +649,30 @@ function render(){
   $('wPrev').disabled=W.i===0;
   if(ex.band){ $('wBand').hidden=false; $('wBand').textContent='🎗️ '+ex.band; } else $('wBand').hidden=true;
   $('wCues').innerHTML=ex.cues.map(c=>`<li>${c}</li>`).join('')+(ex.why?`<li style="background:var(--brand-soft)">${ex.why}</li>`:'');
+  const bad=BAD[isRest?st.next.ex:st.ex]||[];
+  $('wBadHead').hidden=!bad.length; $('wBad').innerHTML=bad.map(c=>`<li>${c}</li>`).join('');
+  renderVideo(isRest?st.next.ex:st.ex);
   const nx=W.steps.slice(W.i+1).find(s=>s.kind!=='rest');
   $('wNext').textContent=isRest?'':(nx?`接下來：${EX[nx.ex].emoji} ${stepTitle(nx)}`:'這是最後一個動作，加油！');
 }
+// 同一支影片（例如換邊、下一組）不重新載入，避免一直重播
+function renderVideo(exId){
+  const d=DEMO[exId], box=$('wVid'), id=d?pickLv(d.yt,W.lv):null;
+  $('wRing').classList.toggle('compact',!!id);
+  if(!id){ box.innerHTML=''; W.vid=null; return; }
+  if(W.vid===id) return;
+  W.vid=id;
+  const name=EX[exId].name, by=pickLv(d.by,W.lv);
+  const foot=`<div class="src"><span>示範：${by}</span><a href="https://www.youtube.com/watch?v=${id}" target="_blank" rel="noopener">在 YouTube 開啟 ↗</a></div>`;
+  if(S.settings.video) box.innerHTML=`<div class="frame">${iframe(id)}</div>${foot}`;
+  else box.innerHTML=`<button class="load" onclick="this.outerHTML='<div class=\\'frame\\'>'+iframe('${id}')+'</div>'">▶ 看「${name}」示範影片</button>${foot}`;
+}
+function iframe(id){
+  const q=`autoplay=1&mute=1&playsinline=1&loop=1&playlist=${id}&rel=0&modestbranding=1`;
+  return `<iframe src="https://www.youtube-nocookie.com/embed/${id}?${q}" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen title="示範影片"></iframe>`;
+}
 function stopWorkout(){
-  clearInterval(timer); W=null; keepAwake(false);
+  clearInterval(timer); W=null; keepAwake(false); $('wVid').innerHTML='';
   try{ speechSynthesis.cancel(); }catch(e){}
   $('ov').classList.remove('show'); document.body.style.overflow='';
   renderHome();
