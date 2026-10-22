@@ -137,7 +137,7 @@ function tripMap(st){
     <polyline points="${path}" class="route"/>
     ${walked.length>1?`<polyline points="${walked.join(' ')}" class="walked"/>`:''}
     ${dots}
-    <text x="${me.x.toFixed(1)}" y="${(me.y-8).toFixed(1)}" text-anchor="middle" class="me">👣</text>
+    <text x="${(me.x-12).toFixed(1)}" y="${(me.y-6).toFixed(1)}" text-anchor="end" class="me">👣</text>
   </svg>`;
 }
 
@@ -169,7 +169,7 @@ function tripCard(){
     <div class="tripstatus">${status}</div>
     ${clues}
     <p class="small muted" style="margin:8px 0 10px">${pace.msg}</p>
-    <div class="row"><button class="btn soft" onclick="openJournal('stops')">📖 旅行手帳</button><button class="btn soft" onclick="openJournal('fav')">⭐ 我們的清單${favN?`（${favN}）`:''}</button></div>
+    <div class="row"><button class="btn soft" onclick="openJournal('stops')">📖 旅行手帳</button><button class="btn soft" onclick="openJournal('fav')">⭐ 清單${favN?`（${favN}）`:''}</button></div>
   </div>`;
 }
 
