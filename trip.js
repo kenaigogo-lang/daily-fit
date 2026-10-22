@@ -123,12 +123,13 @@ function tripMap(st){
   if(!me){ const k=st.done?ks[ks.length-1]:ks[0], p=TRIP.stops[k]; me={x:X(p),y:Y(p)}; }
   const dots=ks.map((k,i)=>{
     const p=pts[i], x=X(p), y=Y(p), got=k<st.arrived, nx=!st.done&&k===st.next;
-    const label=got?p.name.replace(/（.*）/,''):'？';
-    const lx=x>W-80?x-8:x+8, anchor=x>W-80?'end':'start';
+    // 已抵達的站名寫在圓點下方（靠邊時往內對齊），還沒到的只顯示問號
+    const anchor=x>W-60?'end':x<60?'start':'middle';
+    const label=got?`<text x="${x.toFixed(1)}" y="${(y+21).toFixed(1)}" text-anchor="${anchor}" class="lb">${esc(p.name.replace(/（.*）/,''))}</text>`
+      :`<text x="${x.toFixed(1)}" y="${(y+4).toFixed(1)}" text-anchor="middle" class="lb q">？</text>`;
     return `<g ${got?`class="mapstop" onclick="showStop('${p.id}')"`:''}>
-      <circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${nx?9:7}" class="${got?'got':nx?'nx':'fut'}"/>
-      <text x="${x.toFixed(1)}" y="${(y+4).toFixed(1)}" text-anchor="middle" class="em">${got?p.emoji:''}</text>
-      <text x="${lx.toFixed(1)}" y="${(y-11).toFixed(1)}" text-anchor="${anchor}" class="lb ${got?'':'q'}">${esc(label)}</text></g>`;
+      <circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${nx?9:8}" class="${got?'got':nx?'nx':'fut'}"/>
+      ${got?`<text x="${x.toFixed(1)}" y="${(y+3.5).toFixed(1)}" text-anchor="middle" class="em">${p.emoji}</text>`:''}${label}</g>`;
   }).join('');
   return `<svg class="tripmap" viewBox="0 0 ${W} ${H}" role="img" aria-label="喬治市路線圖">
     <rect x="0" y="0" width="${W}" height="${H}" rx="12" class="bg"/>
@@ -136,7 +137,7 @@ function tripMap(st){
     <polyline points="${path}" class="route"/>
     ${walked.length>1?`<polyline points="${walked.join(' ')}" class="walked"/>`:''}
     ${dots}
-    <text x="${me.x.toFixed(1)}" y="${(me.y+6).toFixed(1)}" text-anchor="middle" class="me">👣</text>
+    <text x="${me.x.toFixed(1)}" y="${(me.y-8).toFixed(1)}" text-anchor="middle" class="me">👣</text>
   </svg>`;
 }
 
@@ -162,7 +163,8 @@ function tripCard(){
   const favN=Object.keys(tripFav()).length;
   return `<div class="card trip">
     <div class="bhead"><h2 style="margin:0">🧳 檳城之旅</h2><span class="pill sky">✈️ 還有 ${Math.max(0,pace.left)} 天</span></div>
-    <div class="small muted" style="margin:6px 0 8px">第 ${ch.n} 章「${ch.title}」・${ch.sub}　｜　已抵達 ${st.arrived} / ${TRIP.plannedStops} 站・共 ${st.steps} 步</div>
+    <div class="small" style="margin:6px 0 0"><b>第 ${ch.n} 章「${ch.title}」</b><span class="muted">・${ch.sub}</span></div>
+    <div class="small muted" style="margin:0 0 8px">已抵達 ${st.arrived} / ${TRIP.plannedStops} 站・共走了 ${st.steps} 步</div>
     ${tripMap(st)}
     <div class="tripstatus">${status}</div>
     ${clues}
@@ -176,7 +178,7 @@ function showStop(id){
   const s=TRIP.stops.find(x=>x.id===id), ch=chapterOf(s.ch), date=tripArrivals()[id];
   const paras=s.story.map(p=>p.startsWith('【傳說】')?`<p class="legend"><span class="ltag">傳說</span>${esc(p.slice(4))}</p>`:`<p>${esc(p)}</p>`).join('');
   const credit=`照片：<a href="https://commons.wikimedia.org/wiki/File:${encodeURIComponent(s.photo.file)}" target="_blank" rel="noopener">${esc(s.photo.by)}・${esc(s.photo.lic)}</a>（Wikimedia Commons）`;
-  openSheet(`<img class="tripphoto" src="${photoUrl(s.photo.file)}" alt="${esc(s.name)}" loading="lazy" onerror="this.remove()">
+  openSheet(`<img class="tripphoto" src="${photoUrl(s.photo.file)}" alt="${esc(s.name)}" onerror="this.remove()">
     <div class="credit">${credit}</div>
     <div class="small muted">第 ${ch.n} 章「${ch.title}」・第 ${TRIP.stops.indexOf(s)+1} 站${date?`・${date.replace(/-/g,'/')} 抵達`:''}</div>
     <h2>${s.emoji} ${esc(s.name)}</h2><div class="small muted">${esc(s.en)}</div>
