@@ -85,11 +85,34 @@ ol.plan .amt{color:var(--muted);font-size:13px}
 .cal .c.empty{background:transparent}
 .calnav{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
 .calnav button{background:var(--bg);color:var(--ink);padding:4px 12px;border:1px solid var(--line)}
-.badges{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px}
-.badge{text-align:center;padding:10px 4px;border-radius:12px;background:var(--bg);font-size:12px;color:var(--muted)}
-.badge .i{font-size:28px;display:block;filter:grayscale(1);opacity:.35}
-.badge.got{background:var(--fire-soft);color:var(--ink)}
+.badges{display:grid;grid-template-columns:repeat(auto-fill,minmax(98px,1fr));gap:8px}
+.badge{display:flex;flex-direction:column;align-items:center;gap:2px;text-align:center;padding:10px 6px 8px;border-radius:12px;background:var(--bg);font:inherit;font-size:12px;color:var(--muted);border:2px solid transparent;cursor:pointer}
+.badge .i{font-size:30px;line-height:1.2;filter:grayscale(1);opacity:.35}
+.badge b{font-size:13px;color:var(--ink);line-height:1.3}
+.badge small{font-size:11px;line-height:1.3}
+.badge .tn{font-weight:700}
+.badge.got{border-color:var(--tc);background:var(--card);box-shadow:0 0 0 3px color-mix(in srgb,var(--tc) 18%,transparent)}
 .badge.got .i{filter:none;opacity:1}
+.badge.got .tn{color:var(--tc)}
+.pg{display:block;width:100%;height:5px;background:var(--line);border-radius:9px;overflow:hidden;margin:4px 0 2px}
+.pg i{display:block;height:100%;background:var(--brand);border-radius:9px}
+.pg.big{height:8px;margin:8px 0 12px}
+.bhead{display:flex;justify-content:space-between;align-items:baseline}
+.bgh{font-weight:700;font-size:14px;margin:14px 0 8px}
+.goal{background:var(--brand-soft);border-radius:12px;padding:10px 12px;font-size:14px}
+.sheet{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:30;display:flex;align-items:flex-end;justify-content:center}
+.sheetbox{background:var(--card);color:var(--ink);width:100%;max-width:560px;border-radius:18px 18px 0 0;padding:20px 16px calc(16px + env(safe-area-inset-bottom));text-align:center;max-height:85vh;overflow:auto}
+.sheetbox .big{font-size:52px}
+.sheetbox h2{font-size:20px;margin:4px 0}
+.tiers{list-style:none;padding:0;margin:12px 0 16px;text-align:left}
+.tiers li{display:flex;align-items:center;gap:10px;padding:9px 4px;border-top:1px solid var(--line);opacity:.5}
+.tiers li.ok{opacity:1}
+.tiers li i{width:14px;height:14px;border-radius:50%;flex:none}
+.tiers li b{width:3em}
+.tiers li span{flex:1}
+.tiers li small{color:var(--muted);font-size:12px}
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:12px 18px;border-radius:14px;z-index:40;font-weight:700;box-shadow:0 6px 20px rgba(0,0,0,.25);animation:pop .3s ease-out}
+@keyframes pop{from{transform:translate(-50%,20px);opacity:0}}
 .lv{display:flex;gap:8px}
 .lv button{flex:1;padding:10px 4px;background:var(--bg);color:var(--ink);border:1px solid var(--line);font-size:14px}
 .lv button.on{background:var(--brand);color:var(--brand-ink);border-color:var(--brand);font-weight:700}
@@ -261,20 +284,42 @@ const WEEK = {0:'E',1:'A',2:'B',3:'C',4:'A',5:'B',6:'D'};
 const WD = ['日','一','二','三','四','五','六'];
 const LEVEL_UP_AFTER = 10;
 
-const BADGES = [
-  {id:'first',i:'🌱',n:'第一步',ok:s=>s.total>=1},
-  {id:'s3',i:'🔥',n:'連續 3 天',ok:s=>s.longest>=3},
-  {id:'s7',i:'📅',n:'連續 7 天',ok:s=>s.longest>=7},
-  {id:'s14',i:'⚡',n:'連續 14 天',ok:s=>s.longest>=14},
-  {id:'s30',i:'🏆',n:'連續 30 天',ok:s=>s.longest>=30},
-  {id:'n20',i:'🎯',n:'累計 20 次',ok:s=>s.total>=20},
-  {id:'n50',i:'💎',n:'累計 50 次',ok:s=>s.total>=50},
-  {id:'n100',i:'👑',n:'累計 100 次',ok:s=>s.total>=100},
-  {id:'m300',i:'⏱️',n:'累計 300 分鐘',ok:s=>s.minutes>=300},
-  {id:'lv2',i:'🚀',n:'升到 Lv2',ok:s=>s.maxLevel>=1},
-  {id:'lv3',i:'🦾',n:'升到 Lv3',ok:s=>s.maxLevel>=2},
-  {id:'pain',i:'📉',n:'痠痛減半',ok:s=>s.painHalved}
+/* ===================== 徽章 ===================== */
+// 每個徽章是一個系列，有多個等級（銅→銀→金…）；m = 從 badgeStats() 算出目前數值，t = 各等級門檻，u = 門檻的文字
+const TIER_NAMES=['銅','銀','金','白金','鑽石','傳說','神話','極致'];
+const TIER_COLORS=['#cd7f32','#94a3b8','#eab308','#38bdf8','#a855f7','#ef4444','#10b981','#f472b6'];
+const times=t=>`${t} 次`;
+const BADGE_GROUPS = [
+  {g:'🔥 堅持',list:[
+    {id:'streak',i:'🔥',n:'連續不中斷',d:'每天都有運動，連續幾天（忙碌版也算）',m:b=>b.longest,t:[3,7,14,30,60,100,180,365],u:t=>`連續 ${t} 天`},
+    {id:'week',i:'📅',n:'完美一週',d:'同一週的週一到週日，7 天全部完成',m:b=>b.perfectWeeks,t:[1,4,12,26,52],u:t=>`${t} 週`},
+    {id:'month',i:'🗓️',n:'月度之星',d:'同一個月有 20 天以上有運動',m:b=>b.goodMonths,t:[1,3,6,12],u:t=>`${t} 個月`},
+    {id:'comeback',i:'💪',n:'王者歸來',d:'中斷 3 天以上之後重新開始——回來比從不中斷更重要',m:b=>b.comebacks,t:[1,3,5],u:t=>`回歸 ${t} 次`},
+    {id:'quick',i:'⚡',n:'忙也不放棄',d:'再忙也用 3 分鐘版動一下',m:b=>b.quick,t:[1,5,15,30],u:times}
+  ]},
+  {g:'🎯 累積',list:[
+    {id:'total',i:'🎯',n:'累計訓練',d:'完成的訓練總次數',m:b=>b.total,t:[1,10,30,50,100,200,365,500],u:times},
+    {id:'minutes',i:'⏱️',n:'累計時間',d:'所有訓練加起來的時間',m:b=>b.minutes,t:[60,300,600,1200,3000,6000],u:t=>`${t/60} 小時`},
+    {id:'double',i:'➕',n:'加練一回',d:'同一天完成兩次以上訓練',m:b=>b.doubleDays,t:[1,5,15],u:t=>`${t} 天`}
+  ]},
+  {g:'📚 課表專精',list:[
+    ...['A','B','C','D','E'].map(k=>({id:'r'+k,i:ROUTINES[k].emoji,n:ROUTINES[k].name,d:`完成「${ROUTINES[k].name}」的次數`,m:b=>b.byRoutine[k]||0,t:[5,20,50,100],u:times})),
+    {id:'allround',i:'🧭',n:'全能玩家',d:'5 種完整課表都至少做過一次',m:b=>b.distinct,t:[5],u:()=>'5 種全制霸'}
+  ]},
+  {g:'⏰ 生活節奏',list:[
+    {id:'early',i:'🌅',n:'早鳥',d:'早上 8 點前完成訓練',m:b=>b.early,t:[3,10,30,60],u:times},
+    {id:'night',i:'🌙',n:'夜貓',d:'晚上 9 點後完成訓練',m:b=>b.late,t:[3,10,30,60],u:times},
+    {id:'weekend',i:'🎉',n:'週末戰士',d:'週六、週日兩天都有運動',m:b=>b.weekends,t:[1,4,12,26],u:t=>`${t} 個週末`}
+  ]},
+  {g:'🩺 身體',list:[
+    {id:'level',i:'🚀',n:'難度突破',d:'把難度升上去（之後降回來也會保留）',m:b=>b.maxLevel,t:[1,2],u:t=>`升到 Lv${t+1}`,noNum:true},
+    {id:'painlog',i:'📝',n:'自我觀察家',d:'練完記錄腰和屁股的痠痛程度',m:b=>b.painLogs,t:[5,20,50,100],u:t=>`記錄 ${t} 次`},
+    {id:'comfy',i:'😌',n:'舒服的一天',d:'練完腰和屁股的痠痛都在 1 分以下',m:b=>b.comfy,t:[1,10,30],u:times},
+    {id:'pain',i:'📉',n:'痠痛減半',d:'最近 3 次的痠痛平均，比最早 3 次少一半以上（至少要記錄 6 次）',m:b=>b.painHalved?1:0,t:[1],u:()=>'達成',noNum:true}
+  ]}
 ];
+const BADGE_SERIES=BADGE_GROUPS.flatMap(G=>G.list);
+const tierCount=(s,b)=>s.t.filter(t=>s.m(b)>=t).length;
 const CHEERS = ['今天的你又比昨天強一點 💪','腰會感謝你的 🙏','連續就是最強的天賦 🔥','10 分鐘換一整天的舒服，划算！','核心正在默默變強中 🧱','做完了！可以理直氣壯地耍廢了 😎'];
 
 /* ===================== 儲存 ===================== */
@@ -313,6 +358,46 @@ function stats(){
     painHalved = first>=2 && last<=first/2;
   }
   return {streak:cur,longest,total:S.logs.length,minutes:S.logs.reduce((s,l)=>s+(l.min||0),0),maxLevel:S.settings.maxLevel,painHalved,days:m};
+}
+// 徽章用的統計（從所有紀錄重算，所以舊紀錄也會算進去）
+function badgeStats(){
+  const st=stats(), days=Object.keys(st.days).sort(), set=new Set(days), weeks={}, months={};
+  const day=k=>new Date(k+'T00:00');
+  for(const k of days){
+    const mon=dkey(addDays(day(k),-((day(k).getDay()+6)%7)));
+    weeks[mon]=(weeks[mon]||0)+1; months[k.slice(0,7)]=(months[k.slice(0,7)]||0)+1;
+  }
+  let comebacks=0, weekends=0;
+  for(let i=1;i<days.length;i++) if((day(days[i])-day(days[i-1]))/864e5>=4) comebacks++;
+  for(const k of days) if(day(k).getDay()===6 && set.has(dkey(addDays(day(k),1)))) weekends++;
+  const perDay={}, byRoutine={}; let early=0, late=0, quick=0;
+  for(const l of S.logs){
+    perDay[l.date]=(perDay[l.date]||0)+1; byRoutine[l.routine]=(byRoutine[l.routine]||0)+1;
+    if(l.quick) quick++;
+    const h=new Date(l.ts).getHours(); if(h<8) early++; if(h>=21) late++;
+  }
+  const pains=S.logs.filter(l=>l.pain);
+  return {...st, byRoutine, early, late, quick, comebacks, weekends,
+    perfectWeeks:Object.values(weeks).filter(n=>n>=7).length,
+    goodMonths:Object.values(months).filter(n=>n>=20).length,
+    doubleDays:Object.values(perDay).filter(n=>n>=2).length,
+    distinct:['A','B','C','D','E'].filter(k=>byRoutine[k]).length,
+    painLogs:pains.length, comfy:pains.filter(l=>l.pain.back<=1&&l.pain.hip<=1).length};
+}
+// 把新達成的等級記下解鎖日期，回傳這次新拿到的 [{s, k}]（k = 第幾級，從 1 起算）
+function syncBadges(){
+  const b=badgeStats(), out=[]; S.badges=S.badges||{};
+  for(const s of BADGE_SERIES){
+    const n=tierCount(s,b);
+    for(let k=1;k<=n;k++){ const key=s.id+':'+s.t[k-1]; if(!S.badges[key]){ S.badges[key]=dkey(new Date()); out.push({s,k}); } }
+  }
+  if(out.length) save();
+  return out;
+}
+// 新徽章只顯示每個系列這次拿到的最高級
+function topNew(list){
+  const m={}; for(const x of list) if(!m[x.s.id]||m[x.s.id].k<x.k) m[x.s.id]=x;
+  return Object.values(m);
 }
 
 /* ===================== 課表展開 ===================== */
@@ -436,10 +521,7 @@ function renderHome(){
     ${trend()}
   </div>
 
-  <div class="card">
-    <h2>徽章</h2>
-    <div class="badges">${BADGES.map(b=>`<div class="badge ${b.ok(st)?'got':''}"><span class="i">${b.i}</span>${b.n}</div>`).join('')}</div>
-  </div>
+  ${badgeCard()}
 
   <div class="card why">
     <details><summary>🤔 為什麼這樣排？我原本的伏地挺身＋棒式＋深蹲夠嗎？</summary>
@@ -488,6 +570,52 @@ function testVoice(){
   const on=S.settings.voice; S.settings.voice=true;
   say([EX.clamshell.name,'左邊',amtLine({reps:15}),cueLine(EX.clamshell)]);
   S.settings.voice=on;
+}
+function badgeTile(s,b){
+  const v=s.m(b), k=tierCount(s,b), nx=s.t[k];
+  const pct=nx==null?100:Math.min(100,Math.round(v/nx*100));
+  const num=nx==null?'全部完成 ✨':s.noNum?`下一級：${s.u(nx)}`:`${Math.min(v,nx)} / ${nx}`;
+  return `<button class="badge ${k?'got':''}" ${k?`style="--tc:${TIER_COLORS[k-1]}"`:''} onclick="showBadge('${s.id}')">
+    <span class="i">${s.i}</span><b>${s.n}</b>
+    <small class="tn">${k?`${TIER_NAMES[k-1]}・${s.u(s.t[k-1])}`:'未解鎖'}</small>
+    <span class="pg"><i style="width:${pct}%"></i></span><small>${num}</small></button>`;
+}
+function badgeCard(){
+  syncBadges();
+  const b=badgeStats(); let got=0, all=0, best=null;
+  for(const s of BADGE_SERIES){
+    const v=s.m(b), k=tierCount(s,b), nx=s.t[k]; got+=k; all+=s.t.length;
+    if(nx!=null && !s.noNum){ const f=v/nx; if(!best||f>best.f) best={s,f,v,nx,k}; }
+  }
+  const goal=best?`<div class="goal"><div>🎯 <b>下一個徽章</b>：${best.s.i} ${best.s.n}・${TIER_NAMES[best.k]}（${best.s.u(best.nx)}）</div>
+    <span class="pg"><i style="width:${Math.round(best.f*100)}%"></i></span><small class="muted">目前 ${best.v} / ${best.nx}</small></div>`:'';
+  return `<div class="card">
+    <div class="bhead"><h2 style="margin:0">🏅 徽章</h2><span class="muted small">已收集 <b style="color:var(--ink)">${got}</b> / ${all}</span></div>
+    <span class="pg big"><i style="width:${Math.round(got/all*100)}%"></i></span>
+    ${goal}
+    ${BADGE_GROUPS.map(G=>`<div class="bgh">${G.g}</div><div class="badges">${G.list.map(s=>badgeTile(s,b)).join('')}</div>`).join('')}
+    <p class="small muted" style="margin:10px 0 0">點徽章可以看每一級的條件和解鎖日期。</p>
+  </div>`;
+}
+function showBadge(id){
+  const s=BADGE_SERIES.find(x=>x.id===id), b=badgeStats(), v=s.m(b), k=tierCount(s,b);
+  const rows=s.t.map((t,i)=>{
+    const date=(S.badges||{})[s.id+':'+t], ok=i<k;
+    return `<li class="${ok?'ok':''}"><i style="background:${TIER_COLORS[i]}"></i><b>${TIER_NAMES[i]}</b><span>${s.u(t)}</span>
+      <small>${ok?(date?date.replace(/-/g,'/')+' 解鎖':'已解鎖'):(s.noNum?'未達成':`${v} / ${t}`)}</small></li>`;
+  }).join('');
+  const el=document.createElement('div'); el.className='sheet';
+  el.innerHTML=`<div class="sheetbox"><div class="big">${s.i}</div><h2>${s.n}</h2><p class="muted">${s.d}</p>
+    <ul class="tiers">${rows}</ul><button class="btn soft" onclick="this.closest('.sheet').remove()">關閉</button></div>`;
+  el.onclick=e=>{ if(e.target===el) el.remove(); };
+  document.body.appendChild(el);
+}
+function toast(html){
+  const t=document.createElement('div'); t.className='toast'; t.innerHTML=html;
+  document.body.appendChild(t); setTimeout(()=>t.remove(),4000);
+}
+function newBadgeTiles(list){
+  return topNew(list).map(({s,k})=>`<div class="badge got" style="--tc:${TIER_COLORS[k-1]}"><span class="i">${s.i}</span><b>${s.n}</b><small class="tn">${TIER_NAMES[k-1]}・${s.u(s.t[k-1])}</small></div>`).join('');
 }
 function painOk(){
   const p=S.logs.filter(l=>l.pain).slice(-5);
@@ -774,11 +902,11 @@ function finish(){
   killPlayer();
   clearInterval(timer);
   const R=ROUTINES[W.rid], min=Math.max(1,Math.round((Date.now()-W.startedAt)/60000));
-  const before=stats();
+  syncBadges(); // 先補記之前就達成的，這次只顯示真正新拿到的
   const log={date:dkey(new Date()),ts:Date.now(),routine:W.rid,min,level:W.lv,quick:!!R.quick};
   S.logs.push(log); save();
   const after=stats();
-  const newBadges=BADGES.filter(b=>b.ok(after)&&!b.ok(before));
+  const newBadges=syncBadges();
   keepAwake(false);
   say(DONE_LINE);
   $('wStage').hidden=true;
@@ -786,7 +914,7 @@ function finish(){
   d.innerHTML=`<div class="big">🎉</div><h2>${R.name} 完成！</h2>
     <p>${CHEERS[Math.floor(Math.random()*CHEERS.length)]}</p>
     <div class="pill" style="font-size:18px">🔥 連續 ${after.streak} 天</div>
-    ${newBadges.length?`<div class="card" style="margin-top:14px"><b>獲得新徽章！</b><div class="badges" style="margin-top:8px">${newBadges.map(b=>`<div class="badge got"><span class="i">${b.i}</span>${b.n}</div>`).join('')}</div></div>`:''}
+    ${newBadges.length?`<div class="card" style="margin-top:14px"><b>🏅 獲得新徽章！</b><div class="badges" style="margin-top:8px">${newBadgeTiles(newBadges)}</div></div>`:''}
     <div class="pain card">
       <b>現在的痠痛程度？</b> <span class="small muted">（0 = 完全不痠，10 = 非常痛）</span>
       <label>腰／尾椎附近 <span class="v" id="pbv">2</span></label>
@@ -801,7 +929,9 @@ function finish(){
 function savePain(ts){
   const l=S.logs.find(x=>x.ts===ts);
   if(l){ l.pain={back:+$('pb').value,hip:+$('ph').value}; save(); }
+  const nb=syncBadges(); // 記錄痠痛也可能解鎖徽章（自我觀察家、舒服的一天…）
   stopWorkout();
+  if(nb.length) toast('🏅 獲得新徽章！'+topNew(nb).map(({s,k})=>`<div>${s.i} ${s.n}・${TIER_NAMES[k-1]}</div>`).join(''));
 }
 function confetti(){
   const box=document.createElement('div'); box.className='confetti';
