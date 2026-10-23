@@ -121,11 +121,14 @@ function tripMap(st){
     }
   });
   if(!me){ const k=st.done?ks[ks.length-1]:ks[0], p=TRIP.stops[k]; me={x:X(p),y:Y(p)}; }
+  const placed=[];
   const dots=ks.map((k,i)=>{
     const p=pts[i], x=X(p), y=Y(p), got=k<st.arrived, nx=!st.done&&k===st.next;
-    // 已抵達的站名寫在圓點下方（靠邊時往內對齊），還沒到的只顯示問號
+    // 已抵達的站名寫在圓點下方（靠邊時往內對齊）；跟已經放好的站名太近就改放上方。還沒到的只顯示問號
     const anchor=x>W-60?'end':x<60?'start':'middle';
-    const label=got?`<text x="${x.toFixed(1)}" y="${(y+21).toFixed(1)}" text-anchor="${anchor}" class="lb">${esc(p.name.replace(/（.*）/,''))}</text>`
+    let ly=y+21; if(placed.some(q=>Math.abs(q.x-x)<60&&Math.abs(q.y-ly)<14)) ly=y-13;
+    if(got) placed.push({x,y:ly});
+    const label=got?`<text x="${x.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="${anchor}" class="lb">${esc(p.name.replace(/（.*）/,''))}</text>`
       :`<text x="${x.toFixed(1)}" y="${(y+4).toFixed(1)}" text-anchor="middle" class="lb q">？</text>`;
     return `<g ${got?`class="mapstop" onclick="showStop('${p.id}')"`:''}>
       <circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${nx?9:8}" class="${got?'got':nx?'nx':'fut'}"/>
@@ -150,7 +153,7 @@ function tripCard(){
     const nextCh=chapterOf(TRIP.stops[TRIP.stops.length-1].ch+1);
     status=nextCh
       ?`🎉 第 ${TRIP.stops[idx].ch} 章走完了！第 ${nextCh.n} 章「${nextCh.title}」正在準備中，步數會先存著（已存 ${st.surplus} 步），開放後就能直接往前走。`
-      :`🏔️ <b>恭喜登上升旗山，喬治市全程走完了！</b>24 站的故事都收進手帳了，3 月去的時候可以再打開重溫。之後多走的步數會先存著（已存 ${st.surplus} 步），等番外篇開放。`;
+      :`🏔️ <b>恭喜登上升旗山，喬治市全程走完了！</b>24 站的故事都收進手帳了，3 月去的時候可以再打開重溫。之後多走的步數會先存著${st.surplus?`（已存 ${st.surplus} 步）`:''}，等番外篇開放。`;
   } else if(st.arrived===0){
     status='🚢 第一次練完，就會在瑞天咸碼頭登岸，正式踏上喬治市！';
   } else {
