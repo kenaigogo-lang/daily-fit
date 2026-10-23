@@ -260,7 +260,11 @@ svg.trend{width:100%;height:120px;display:block}
 .ov.tv .top{padding:6px max(16px,env(safe-area-inset-right)) 4px max(16px,env(safe-area-inset-left))}
 .ov.tv .stage{max-width:none;display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto;column-gap:20px;align-items:start;padding:2px max(16px,env(safe-area-inset-right)) 0 max(16px,env(safe-area-inset-left));text-align:left;overflow:hidden}
 .ov.tv .wl,.ov.tv .wr{display:flex;flex-direction:column;min-height:0;height:100%;overflow:hidden}
-.ov.tv .wr{overflow-y:auto;scrollbar-width:none}
+.ov.tv .wr{overflow-y:auto;scrollbar-width:none;display:grid;grid-template-columns:minmax(0,1fr) auto;align-content:start;column-gap:12px}
+/* 右欄：倒數圈放在動作名稱右邊，省下高度給要點 */
+.ov.tv #wKicker,.ov.tv #wName,.ov.tv #wMeta{grid-column:1}
+.ov.tv #wRing{grid-column:2;grid-row:1 / span 3;align-self:center}
+.ov.tv #wCues,.ov.tv #wNext,.ov.tv #wCueHead,.ov.tv #wBad,.ov.tv #wBadHead{grid-column:1 / -1}
 .ov.tv .wr::-webkit-scrollbar{display:none}
 .ov.tv .wl{grid-column:1;grid-row:1}
 .ov.tv .wr{grid-column:2;grid-row:1}
@@ -273,8 +277,8 @@ svg.trend{width:100%;height:120px;display:block}
 .ov.tv .kicker{min-height:0;font-size:13px}
 .ov.tv .name{font-size:24px;margin:0 0 4px}
 .ov.tv .meta{justify-content:flex-start;min-height:0}
-.ov.tv .ring,.ov.tv .ring.compact{width:84px;margin:4px 0}
-.ov.tv .ring .num{font-size:30px}
+.ov.tv .ring,.ov.tv .ring.compact{width:92px;margin:0}
+.ov.tv .ring .num{font-size:32px}
 .ov.tv .ring .num small{font-size:12px;margin-top:-4px}
 .ov.tv .cuehead,.ov.tv .cues.bad,.ov.tv #wBadHead{display:none}
 .ov.tv .cues{margin:2px 0 4px}
