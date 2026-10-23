@@ -148,7 +148,9 @@ function tripCard(){
   let status, clues='';
   if(st.done){
     const nextCh=chapterOf(TRIP.stops[TRIP.stops.length-1].ch+1);
-    status=`🎉 第 ${TRIP.stops[idx].ch} 章走完了！${nextCh?`第 ${nextCh.n} 章「${nextCh.title}」正在準備中，`:''}步數會先存著（已存 ${st.surplus} 步），開放後就能直接往前走。`;
+    status=nextCh
+      ?`🎉 第 ${TRIP.stops[idx].ch} 章走完了！第 ${nextCh.n} 章「${nextCh.title}」正在準備中，步數會先存著（已存 ${st.surplus} 步），開放後就能直接往前走。`
+      :`🏔️ <b>恭喜登上升旗山，喬治市全程走完了！</b>24 站的故事都收進手帳了，3 月去的時候可以再打開重溫。之後多走的步數會先存著（已存 ${st.surplus} 步），等番外篇開放。`;
   } else if(st.arrived===0){
     status='🚢 第一次練完，就會在瑞天咸碼頭登岸，正式踏上喬治市！';
   } else {
@@ -217,16 +219,19 @@ function tripFinishBlock(before,after){
   const ev=tripEvents(before,after);
   const st=tripState(after);
   const parts=ev.map(e=>{
-    if(e.type==='arrive'){ const s=TRIP.stops[e.stop];
-      return `<div class="arrive"><div class="stamp">${s.emoji}</div><div><div class="small muted">📍 抵達第 ${e.stop+1} 站</div><b>${esc(s.name)}</b></div>
-        <button class="btn" style="width:auto;padding:10px 14px" onclick="showStop('${s.id}')">讀故事</button></div>`; }
+    if(e.type==='arrive'){ const s=TRIP.stops[e.stop], last=e.stop===TRIP.plannedStops-1;
+      const newCh=e.stop>0&&TRIP.stops[e.stop-1].ch!==s.ch?chapterOf(s.ch):null;
+      return `${newCh?`<div class="fact">📖 進入第 ${newCh.n} 章「${newCh.title}」：${newCh.sub}</div>`:''}
+        <div class="arrive"><div class="stamp">${s.emoji}</div><div><div class="small muted">📍 抵達第 ${e.stop+1} 站${last?'・終點':''}</div><b>${esc(s.name)}</b></div>
+        <button class="btn" style="width:auto;padding:10px 14px" onclick="showStop('${s.id}')">讀故事</button></div>
+        ${last?'<div class="fact">🏔️ <b>全程完成！</b>你們從瑞天咸碼頭一路走上升旗山，24 站全部收集完成。3/16 見，旅途愉快！</div>':''}`; }
     if(e.type==='card') return `<div class="small muted" style="margin-top:10px">🃏 路上小發現</div>${cardHtml(e.card)}`;
     if(e.type==='clue') return `<div class="fact">🔍 <b>新線索</b>　${esc(e.text)}</div>`;
     if(e.type==='quiz') return `<div class="fact">🧩 <b>下一站的小測驗解鎖了！</b> <a href="javascript:void 0" onclick="showQuiz(${e.stop})">現在回答</a></div>`;
   }).join('');
   let foot='';
   if(!ev.length){
-    if(st.done) foot=`<p class="small muted">下一章準備中，步數先存著（已存 ${st.surplus} 步）。</p>`;
+    if(st.done) foot=`<p class="small muted">${TRIP.stops.length>=TRIP.plannedStops?'喬治市全程已完成 🏔️':'下一章準備中'}，步數先存著（已存 ${st.surplus} 步）。</p>`;
     else { const toSlot=st.arrived?SLOT-(st.inLeg%SLOT):st.need-st.inLeg; foot=`<p class="small muted">再 ${toSlot} 步就有新發現。</p>`; }
   }
   return `<div class="card tripdone"><div class="bhead"><b>🧳 檳城之旅</b><span class="pill sky">🚶 +${gained} 步</span></div>${parts}${foot}</div>`;
@@ -251,7 +256,7 @@ function renderJournal(){
   } else if(journalTab==='cards'){
     const got=TRIP.cards.slice(0,st.cards);
     body=(got.length?got.slice().reverse().map(c=>cardHtml(c)).join(''):'<p class="muted">練完就會在路上發現新東西！</p>')
-      +`<p class="small muted" style="text-align:center">已發現 ${got.length} 張・這一章還有 ${TRIP.cards.length-got.length} 張等你們發現</p>`;
+      +`<p class="small muted" style="text-align:center">已發現 ${got.length} 張・還有 ${TRIP.cards.length-got.length} 張等你們發現</p>`;
   } else {
     const fs=TRIP.stops.filter(s=>fav[s.id]), fc=TRIP.cards.filter(c=>fav[c.id]);
     body=(!fs.length&&!fc.length)?'<p class="muted">在故事卡或小發現卡上按「☆ 收藏」，想去的地方和想吃的東西就會集中在這裡，3 月到檳城時直接打開用。</p>':'';
