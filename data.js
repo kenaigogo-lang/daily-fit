@@ -92,8 +92,14 @@ function gearLine(rid,lv){
 }
 
 /* ===================== 語音（預先產生的音檔） ===================== */
-// 改這裡的聲音或語速後，重新執行 GitHub Actions「產生語音」就會重做全部音檔
-const VOICE = {name:'zh-TW-HsiaoChenNeural', rate:'+15%'};
+// 改這裡的聲音、口吻或語速後，重新執行 GitHub Actions「產生語音」就會重做全部音檔
+const VOICE = {
+  model:'gemini-3.8-flash-tts',
+  fallbackModel:'gemini-3.8-flash-lite-tts',
+  name:'Leda',
+  style:'Natural Taiwanese Mandarin accent, warm, friendly, upbeat young female fitness coach, clear brisk pace',
+  rate:'1.0'
+};
 const SIDES = ['左邊','右邊'];
 const restLine = (label,first)=> first ? '準備，第一個動作' : `${label}，下一個`;
 const amtLine = a => a.reps ? `${a.reps} 下` : `${a.sec} 秒`;
@@ -109,9 +115,9 @@ function allVoiceLines(){
   for(const rid of Object.keys(ROUTINES)) LEVELS.forEach((_,lv)=>{ const g=gearLine(rid,lv); if(g) set.add(g); });
   return [...set];
 }
-// 檔名 = 聲音設定＋文字的雜湊：換聲音或改字就會產生新檔
+// 檔名 = 聲音設定＋文字的雜湊：換聲音、改口吻或改字就會產生新檔
 function voiceFile(text){
-  const s=VOICE.name+'|'+VOICE.rate+'|'+text; let h=0x811c9dc5;
+  const s=VOICE.name+'|'+(VOICE.style||'')+'|'+VOICE.rate+'|'+text; let h=0x811c9dc5;
   for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,0x01000193)>>>0; }
   return 'audio/'+h.toString(16).padStart(8,'0')+'.mp3';
 }

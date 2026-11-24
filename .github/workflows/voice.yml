@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths: ['data.js', 'tools/gen-voice.mjs']
+    paths: ['data.js', 'tools/gen-voice.mjs', 'tools/split-batch.py']
 
 permissions:
   contents: write
@@ -20,11 +20,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: 用 Azure 產生語音檔
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: 安裝音檔切分與轉檔套件
+        run: pip install --quiet faster-whisper pypinyin numpy
+      - name: 用 Google Gemini TTS 產生語音檔
         run: node tools/gen-voice.mjs
         env:
-          AZURE_SPEECH_KEY: ${{ secrets.AZURE_SPEECH_KEY }}
-          AZURE_SPEECH_REGION: ${{ secrets.AZURE_SPEECH_REGION }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       - name: 提交語音檔並更新網站
         env:
           GH_TOKEN: ${{ github.token }}

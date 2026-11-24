@@ -334,7 +334,7 @@ svg.trend{width:100%;height:120px;display:block}
 <div class="ov" id="tripov"></div>
 
 <!-- 改了這些檔案就把 ?v= 加一，避免手機用到舊的快取 -->
-<script src="data.js?v=3"></script>
+<script src="data.js?v=4"></script>
 <script src="penang.js?v=3"></script>
 <script src="trip.js?v=4"></script>
 <script>
@@ -671,7 +671,7 @@ function renderHome(){
           <input type="range" min="0.9" max="1.8" step="0.05" value="${S.settings.rate}" style="flex:1;accent-color:var(--brand)" oninput="S.settings.rate=+this.value;$('rateV').textContent=(+this.value).toFixed(2);save()">
           <button class="chip" onclick="testVoice()">🔊 試聽</button>
         </div>
-        <p class="small muted" style="margin:6px 0 0">預設用「曉臻」自然語音（預先錄好的音檔）。如果改選裝置內建語音：iPhone 可到「設定 › 輔助使用 › 朗讀內容 › 聲音 › 中文（台灣）」下載「美佳（加強版）」；電腦用 Edge 開會有更自然的「HsiaoChen」聲音。</p>
+        <p class="small muted" style="margin:6px 0 0">預設用 Google Gemini「活力女教練」自然語音（預先錄好的音檔）。如果改選裝置內建語音：iPhone 可到「設定 › 輔助使用 › 朗讀內容 › 聲音 › 中文（台灣）」下載「美佳（加強版）」；電腦用 Edge 開會有更自然的「HsiaoChen」聲音。</p>
       </div>
       <label class="switch">自動播放示範影片（靜音循環）<input type="checkbox" ${S.settings.video?'checked':''} onchange="S.settings.video=this.checked;save()"></label>
       <label class="switch">📺 電視模式：手機橫放時自動切換<input type="checkbox" ${S.settings.tvAuto?'checked':''} onchange="S.settings.tvAuto=this.checked;save();applyTv()"></label>
@@ -808,7 +808,7 @@ function pickVoice(){
   if(S.settings.voiceName&&S.settings.voiceName!==HQ){ const v=vs.find(x=>x.name===S.settings.voiceName); if(v) return v; }
   return vs.sort((a,b)=>rankVoice(b)-rankVoice(a))[0]||null;
 }
-// 高品質語音：Azure 曉臻預先做好的 mp3（audio/），沒有對應音檔時改用裝置內建語音
+// 高品質語音：Google Gemini 活力女教練預先做好的 mp3（audio/），沒有對應音檔時改用裝置內建語音
 const HQ='__hq__';
 let voiceFiles=new Set();
 fetch('audio/manifest.json').then(r=>r.ok?r.json():[]).then(a=>{ voiceFiles=new Set(a); fillVoiceSelect(); }).catch(()=>{});
@@ -817,7 +817,7 @@ const audioEl=new Audio(); let audioQueue=[];
 audioEl.onended=playNextClip;
 function playNextClip(){
   const f=audioQueue.shift(); if(!f) return;
-  const r=S.settings.rate/1.3; // 音檔本身已加快 15%，預設語速 1.3 = 原速播放
+  const r=S.settings.rate/1.3; // 音檔本身已調整為輕快語速，預設語速 1.3 = 原速播放
   audioEl.src=f; audioEl.defaultPlaybackRate=r; audioEl.playbackRate=r;
   audioEl.play().catch(()=>{});
 }
@@ -855,7 +855,7 @@ try{ speechSynthesis.onvoiceschanged=()=>{ if(!W) fillVoiceSelect(); }; }catch(e
 function fillVoiceSelect(){
   const sel=document.getElementById('voiceSel'); if(!sel) return;
   const vs=zhVoices().sort((a,b)=>rankVoice(b)-rankVoice(a)), cur=useHQ()?null:pickVoice();
-  const hq=voiceFiles.size?`<option value="${HQ}" ${useHQ()?'selected':''}>🌟 曉臻（自然語音・推薦）</option>`:'';
+  const hq=voiceFiles.size?`<option value="${HQ}" ${useHQ()?'selected':''}>🌟 活力女教練（Gemini 自然語音・推薦）</option>`:'';
   sel.innerHTML=hq+vs.map(v=>`<option value="${v.name}" ${cur&&cur.name===v.name?'selected':''}>${v.name}（${v.lang}）</option>`).join('')||'<option>這個瀏覽器沒有中文語音</option>';
 }
 async function keepAwake(on){
