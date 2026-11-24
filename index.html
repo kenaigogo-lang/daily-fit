@@ -813,6 +813,12 @@ const HQ='__hq__';
 let voiceFiles=new Set();
 fetch('audio/manifest.json').then(r=>r.ok?r.json():[]).then(a=>{ voiceFiles=new Set(a); fillVoiceSelect(); }).catch(()=>{});
 const useHQ=()=>(!S.settings.voiceName||S.settings.voiceName===HQ);
+function legacyVoiceFile(text){
+  const s='zh-TW-HsiaoChenNeural|+15%|'+text; let h=0x811c9dc5;
+  for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,0x01000193)>>>0; }
+  return 'audio/'+h.toString(16).padStart(8,'0')+'.mp3';
+}
+const pickVoiceFile=t=>{ const f=voiceFile(t); if(voiceFiles.has(f)) return f; const old=legacyVoiceFile(t); return voiceFiles.has(old)?old:null; };
 const audioEl=new Audio(); let audioQueue=[];
 audioEl.onended=playNextClip;
 function playNextClip(){
@@ -830,7 +836,7 @@ function say(parts){
   if(!S.settings.voice) return;
   parts=[].concat(parts).filter(Boolean);
   stopSpeech();
-  if(useHQ() && parts.every(p=>voiceFiles.has(voiceFile(p)))){ audioQueue=parts.map(voiceFile); playNextClip(); return; }
+  if(useHQ() && parts.every(p=>pickVoiceFile(p))){ audioQueue=parts.map(pickVoiceFile); playNextClip(); return; }
   if(!('speechSynthesis' in window)) return;
   try{
     const u=new SpeechSynthesisUtterance(parts.join('，')), v=pickVoice();
@@ -848,14 +854,16 @@ function preloadVoice(steps){
     const ex=EX[st.ex]; lines.add(ex.name); lines.add(amtLine(st)); lines.add(cueLine(ex));
     if(st.side) lines.add(st.side); if(ex.hold) lines.add(holdLine(ex.hold));
   }
-  lines.forEach(l=>{ const f=voiceFile(l); if(voiceFiles.has(f)) fetch(f).catch(()=>{}); });
+  lines.forEach(l=>{ const f=pickVoiceFile(l); if(f) fetch(f).catch(()=>{}); });
 }
 // 語音清單是非同步載入的，載好後更新設定頁的下拉選單
 try{ speechSynthesis.onvoiceschanged=()=>{ if(!W) fillVoiceSelect(); }; }catch(e){}
 function fillVoiceSelect(){
   const sel=document.getElementById('voiceSel'); if(!sel) return;
   const vs=zhVoices().sort((a,b)=>rankVoice(b)-rankVoice(a)), cur=useHQ()?null:pickVoice();
-  const hq=voiceFiles.size?`<option value="${HQ}" ${useHQ()?'selected':''}>🌟 活力女教練（Gemini 自然語音・推薦）</option>`:'';
+  const isNew=voiceFiles.has(voiceFile(DONE_LINE));
+  const label=isNew?'🌟 活力女教練（Gemini 自然語音・推薦）':'🌟 曉臻（自然語音・推薦）';
+  const hq=voiceFiles.size?`<option value="${HQ}" ${useHQ()?'selected':''}>${label}</option>`:'';
   sel.innerHTML=hq+vs.map(v=>`<option value="${v.name}" ${cur&&cur.name===v.name?'selected':''}>${v.name}（${v.lang}）</option>`).join('')||'<option>這個瀏覽器沒有中文語音</option>';
 }
 async function keepAwake(on){

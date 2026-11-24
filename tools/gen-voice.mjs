@@ -132,6 +132,16 @@ async function synthesizeWav(transcript, outWav) {
     }
 
     const errText = await r.text();
+    if (r.status === 402) {
+      console.error(
+        '❌ Google AI Studio 回傳 402（Prepay 預付額度為 $0）：\n' +
+        '   這把 GEMINI_API_KEY 所屬的專案已綁定 Prepay 計費帳戶，但 AI Studio 預付餘額為 0（綁定計費後不會自動退回免費方案）。\n' +
+        '   解決方式（二擇一）：\n' +
+        '   1.【免費方案】到 https://aistudio.google.com/projects 建立一個「未綁定計費（Free tier）」的新專案並產生新的 API Key 更新至 GitHub Secrets。\n' +
+        '   2.【預付儲值】到 https://aistudio.google.com/projects 的 Billing 頁面點選 Buy credits 儲值（產生全部 80 句音檔僅需約 $0.04 美金）。'
+      );
+      process.exit(1);
+    }
     if (r.status === 429) {
       const isDaily = /PerDay|per day|RequestsPerDay|DayPerProject/i.test(errText);
       if (isDaily && modelIdx + 1 < models.length) {
