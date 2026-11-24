@@ -6,9 +6,9 @@ const EX = {
   hipflexor:{name:'跪姿髖屈肌伸展',emoji:'🧎',kind:'time',sided:true,cues:['單膝跪地（膝下墊毛巾），另一腳在前','先夾緊屁股、骨盆微微往後捲，再把身體往前推','鼠蹊到大腿前側有拉感即可，腰不要拱'],why:'久坐會讓髖屈肌變緊，拉扯下背'},
   figure4:{name:'仰躺 4 字臀部伸展',emoji:'4️⃣',kind:'time',sided:true,cues:['仰躺，一腳腳踝放到另一腳膝蓋上','雙手抱住下方大腿，往胸口拉','屁股外側有拉感，放鬆呼吸'],why:'放鬆臀部外側、梨狀肌'},
   hamstring:{name:'彈力繩大腿後側伸展',emoji:'🦵',kind:'time',sided:true,gear:{type:'tube',m:'紅',f:'黃',how:'套在腳底（只是當拉帶用）'},cues:['仰躺，繩子套在腳底，膝蓋伸直往上拉','另一腳平放地面','大腿後側有拉感就好，不要硬拉'],why:'大腿後側太緊會牽動骨盆與下背'},
-  doorway:{name:'門框胸肌伸展',emoji:'🚪',kind:'time',cues:['前臂貼門框，手肘和肩膀同高','身體往前跨一步，胸前有拉感','肩膀放鬆不要聳肩'],why:'打開久坐造成的圓肩'},
-  curlup:{name:'McGill 捲腹',emoji:'🫁',kind:'reps',hold:8,cues:['仰躺，一腳彎曲一腳伸直，雙手墊在下背','頭和肩膀「微微」離地，停 8 秒','脖子不動，腰不要壓平也不要拱起'],why:'護腰版捲腹，不會反覆彎折腰椎'},
-  sideplank:{name:'側棒式',emoji:'📐',kind:'time',sided:true,variants:['膝蓋著地版','直腿版','直腿版'],cues:['手肘在肩膀正下方','頭、身體到膝（或腳）成一直線','屁股不要往後坐，也不要往下垂'],why:'強化側腹與臀中肌，穩定骨盆'},
+  doorway:{name:'站姿背後交扣擴胸',emoji:'🙌',kind:'time',cues:['站直，雙手在背後十指交扣','肩胛骨往中間夾、雙手往後延伸打開胸口，也可微彎手肘活動','肩膀放鬆不要聳肩，收小腹不要拱腰'],why:'打開久坐造成的圓肩'},
+  curlup:{name:'仰躺雙手上推微捲腹',emoji:'🫁',kind:'reps',cues:['仰躺屈膝，雙手伸直合掌朝向天花板','吐氣用上腹出力，頭與肩胛骨微微捲起、雙手往上推','吸氣慢慢放回，下背貼穩地面、脖子放鬆不硬拉'],why:'安全練上腹、不壓迫下背，取代傳統仰臥起坐'},
+  sideplank:{name:'側棒式抬臀',emoji:'📐',kind:'time',sided:true,variants:['膝蓋著地版','直腿版','直腿版'],cues:['側躺手肘撐在肩膀正下方，身體成一直線','用側腹與臀部外側出力，把骨盆往上抬起再慢放','肩膀遠離耳朵不聳肩，身體不要前後翻轉'],why:'強化側腹與臀中肌，穩定骨盆'},
   birddog:{name:'鳥狗式',emoji:'🐕',kind:'reps',sided:true,hold:5,cues:['四足跪姿，背部保持平','同時伸出對側的手與腳，停 5 秒再收回','想像背上放一杯水不能灑出來'],why:'練背部與核心的穩定，閃腰族必備'},
   deadbug:{name:'死蟲式',emoji:'🪲',kind:'reps',cues:['仰躺，手朝天花板、膝蓋彎 90 度抬起','下背輕貼地面，慢慢伸出對側手腳','左右交替算一下；下背離地就縮小動作'],why:'練深層核心，同時保護下背'},
   plank:{name:'棒式',emoji:'🧱',kind:'time',cues:['手肘在肩膀下，身體成一直線','收小腹、夾屁股，不塌腰不翹臀','正常呼吸，不要憋氣'],why:'前側核心耐力'},
@@ -17,20 +17,20 @@ const EX = {
   clamshell:{name:'彈力圈蚌殼式',emoji:'🐚',kind:'reps',sided:true,gear:{type:'loop',m:['藍','黃','紅'],f:['綠','藍','黃'],how:'套膝蓋上方'},cues:['側躺，髖與膝彎約 45 度，圈套膝上','腳跟貼在一起，上面的膝蓋往上打開','骨盆不要往後翻，慢慢放下'],why:'直接強化臀中肌——就是你屁股上緣外側痠的位置'},
   sidelegraise:{name:'側躺抬腿',emoji:'🦩',kind:'reps',sided:true,cues:['側躺，下面的腳彎曲，上面的腳伸直、略往後','腳尖朝前（不要朝天花板）','用屁股外側把腿抬到約 45 度，停 1 秒'],why:'臀中肌主力訓練'},
   monsterwalk:{name:'彈力圈側走',emoji:'🦀',kind:'time',gear:{type:'loop',m:['藍','黃','紅'],f:['綠','藍','黃'],how:'套膝蓋上方（想更難就套腳踝）'},cues:['微蹲、背打直','往側邊走 8～10 步，再走回來','膝蓋不要往內夾，步伐小而穩'],why:'臀中肌＋骨盆穩定'},
-  squat:{name:'深蹲',emoji:'🏋️',kind:'reps',cues:['腳與肩同寬，腳尖微朝外','屁股往後坐，膝蓋和腳尖同方向','蹲到不痛的深度，站起時夾屁股'],why:'下肢基礎力量'},
+  squat:{name:'寬站姿深蹲',emoji:'🏋️',kind:'reps',cues:['雙腳打開比肩寬，腳尖微朝外','屁股往後坐往下蹲，膝蓋對齊腳尖方向','蹲到不痛的深度，站起時夾緊屁股'],why:'強化臀腿與大腿內側，對膝蓋更友善'},
   pushup:{name:'伏地挺身',emoji:'💪',kind:'reps',variants:['跪膝版或標準版皆可','標準版','標準版（可放慢下降 3 秒）'],cues:['手略寬於肩，身體成一直線','下降時手肘約 45 度，不要往外開','核心收緊，腰不要塌'],why:'上肢推力＋核心'},
   bandrow:{name:'彈力繩坐姿划船',emoji:'🚣',kind:'reps',gear:{type:'tube',m:'紅',f:'黃',how:'坐在地上，中段套在兩腳腳底；雙手握近一點會更重'},cues:['坐在地上雙腳伸直，大腿後側太緊可以微彎膝','繩子中段套在兩腳腳底，雙手各握一端，背坐直','手肘貼著身體往後拉、肩胛骨往中間夾，再慢慢放回'],why:'強化上背，對抗久坐駝背'},
-  shouldertap:{name:'棒式摸肩',emoji:'🤚',kind:'reps',variants:['跪膝版','標準版（雙腳打開）','標準版（雙腳併攏較難）'],cues:['手掌撐在肩膀正下方，雙腳打開比肩寬（跪膝版就膝蓋著地）','一手輕摸對側肩膀再放回，左右交替各算一下','骨盆不要左右晃，想像腰上放一杯水'],why:'不需要固定點的抗旋轉核心訓練，保護腰椎'},
+  shouldertap:{name:'棒式單手摸肚',emoji:'🤚',kind:'reps',variants:['跪膝版','標準版（雙腳打開）','標準版（雙腳併攏較難）'],cues:['手掌撐在肩膀正下方，雙腳打開與肩同寬（跪膝版就膝蓋著地）','收緊下腹，單手離地輕摸肚子再放回，左右交替各算一下','骨盆不要左右晃，想像腰上放一杯水'],why:'不需要固定點的抗旋轉核心訓練，保護腰椎'},
   march:{name:'原地高抬腿踏步',emoji:'🚶',kind:'time',cues:['原地踏步，膝蓋抬到髖的高度','手臂一起擺動','想多流汗就加快速度'],why:'暖身＋提高心跳'},
-  lowjack:{name:'無跳開合跳',emoji:'⭐',kind:'time',cues:['一腳往側邊踏出，雙手同時往上舉','左右交替，加快速度','不用跳，保護膝蓋與腰'],why:'低衝擊有氧'}
+  lowjack:{name:'開合跳',emoji:'⭐',kind:'time',cues:['雙手往上舉時雙腳往外跳開，手放下時雙腳併回','前腳掌輕落地、膝蓋保持微彎緩衝','若膝蓋或腰不舒服，可改成左右側踏不跳'],why:'全身有氧、快速拉起心跳'}
 };
 
 /* ===================== 課表 ===================== */
 // blocks: 每個 block 可以設 rounds（循環幾輪）；item: reps/sec、sets
 const ROUTINES = {
-  A:{name:'核心穩定日',emoji:'🛡️',focus:['護腰','核心'],desc:'McGill 護腰三大動作：捲腹、側棒式、鳥狗式',blocks:[
+  A:{name:'核心穩定日',emoji:'🛡️',focus:['護腰','核心'],desc:'護腰核心組合：上推微捲腹、側棒式抬臀、鳥狗式',blocks:[
     {items:[{ex:'catcow',sec:40}]},
-    {items:[{ex:'curlup',reps:5,sets:2},{ex:'sideplank',sec:20,sets:2},{ex:'birddog',reps:5,sets:2},{ex:'deadbug',reps:10}]},
+    {items:[{ex:'curlup',reps:12,sets:2},{ex:'sideplank',sec:20,sets:2},{ex:'birddog',reps:5,sets:2},{ex:'deadbug',reps:10}]},
     {items:[{ex:'hipflexor',sec:30}]}
   ]},
   B:{name:'臀部強化日',emoji:'🍑',focus:['臀中肌','骨盆'],desc:'針對屁股上緣外側痠：把臀中肌練起來',blocks:[
@@ -43,7 +43,7 @@ const ROUTINES = {
     {items:[{ex:'squat',reps:12,sets:2},{ex:'pushup',reps:10,sets:2},{ex:'bandrow',reps:15,sets:2},{ex:'shouldertap',reps:16},{ex:'plank',sec:30,sets:2}]},
     {items:[{ex:'doorway',sec:30}]}
   ]},
-  D:{name:'輕有氧循環',emoji:'🔥',focus:['有氧','流汗'],desc:'低衝擊循環 2 輪，心跳拉起來但不傷腰',blocks:[
+  D:{name:'輕有氧循環',emoji:'🔥',focus:['有氧','流汗'],desc:'有氧循環 2 輪，心跳拉起來但不傷腰',blocks:[
     {rounds:2,items:[{ex:'march',sec:40},{ex:'squat',reps:12},{ex:'lowjack',sec:40},{ex:'glutebridge',reps:12},{ex:'monsterwalk',sec:30},{ex:'plank',sec:20}]},
     {items:[{ex:'hipflexor',sec:30}]}
   ]},

@@ -334,44 +334,45 @@ svg.trend{width:100%;height:120px;display:block}
 <div class="ov" id="tripov"></div>
 
 <!-- 改了這些檔案就把 ?v= 加一，避免手機用到舊的快取 -->
-<script src="data.js?v=2"></script>
+<script src="data.js?v=3"></script>
 <script src="penang.js?v=3"></script>
 <script src="trip.js?v=4"></script>
 <script>
 /* ===================== 示範影片與常見錯誤 ===================== */
 // 全部為女性示範者（多數為物理治療師）。s/e = 只循環播放影片中的這一段（秒）
 // 陣列 = 依難度 Lv1/Lv2/Lv3 給不同版本
-const JUICE='啾c物理治療師', YUCI='YUCI物理治療師', QR='全人物理治療所', NULI='女力健身 Nuli App';
+const JUICE='啾c物理治療師', COFFEE='Coffee 林芊妤', YUCI='YUCI物理治療師', NULI='女力健身 Nuli App';
 const DEMO = {
   catcow:{yt:'YgR5nNR464k',by:YUCI},
-  hipflexor:{yt:'LvUUoiisZP8',by:QR},
+  hipflexor:{yt:'U2aqeK7MDxc',s:299,e:361,by:JUICE},
   figure4:{yt:'vdIugUHKGWg',s:40,e:108,by:JUICE},
   hamstring:{yt:'vdIugUHKGWg',s:177,e:245,by:JUICE},
-  doorway:{yt:'5JR8kiH1G4o',s:107,e:136,by:JUICE},
-  curlup:{yt:'CA59-Ug8Yyc',by:QR},
-  sideplank:[{yt:'jq-jz6opQQU',s:97,e:143,by:NULI},{yt:'jq-jz6opQQU',s:61,e:97,by:NULI},{yt:'jq-jz6opQQU',s:61,e:97,by:NULI}],
+  doorway:{yt:'39G79Aj4UhU',s:675,e:735,by:COFFEE},
+  curlup:{yt:'O7f3dS1kE-g',s:73,e:165,by:COFFEE},
+  sideplank:[{yt:'O7f3dS1kE-g',s:166,e:230,by:COFFEE},{yt:'O7f3dS1kE-g',s:293,e:344,by:COFFEE},{yt:'O7f3dS1kE-g',s:293,e:344,by:COFFEE}],
   birddog:{yt:'hMWeJ2EqN64',s:386,e:479,by:JUICE},
   deadbug:{yt:'9ePFzKtrRl0',s:185,e:226,by:JUICE},
   plank:{yt:'9ePFzKtrRl0',s:266,e:326,by:JUICE},
-  glutebridge:{yt:'h0iK1956GXc',by:YUCI},
+  glutebridge:{yt:'vdIugUHKGWg',s:245,e:292,by:JUICE},
   bandbridge:{yt:'8de50u4vASg',s:424,e:455,by:JUICE},
   clamshell:{yt:'8de50u4vASg',s:535,e:578,by:JUICE},
   sidelegraise:{yt:'3CBevJnW8Pc',s:256,e:312,by:JUICE},
   monsterwalk:{yt:'8de50u4vASg',s:735,e:776,by:JUICE},
-  squat:{yt:'8de50u4vASg',s:776,e:805,by:JUICE},
-  pushup:[{yt:'dpHruOf5_XQ',by:'鍾佳軒 物理治療師（早安健康）'},{yt:'CBPToKl0JLw',by:NULI},{yt:'CBPToKl0JLw',by:NULI}],
-  bandrow:{yt:'h9iN9flDpI0',by:'早安健康'},
-  shouldertap:{yt:'44FSVFEtHSE',by:'早安健康'},
-  march:{yt:'q7rcxGPFvn8',by:'璿子有氧運動健身'}
+  squat:{yt:'SRQQ8pbmWlg',s:836,e:965,by:COFFEE},
+  pushup:[{yt:'Mh-sTLUGuYY',s:865,e:939,by:COFFEE},{yt:'CBPToKl0JLw',by:NULI},{yt:'CBPToKl0JLw',by:NULI}],
+  bandrow:{yt:'H4caC468WTU',s:496,e:542,by:JUICE},
+  shouldertap:{yt:'bYWsYFzkxIw',s:451,e:499,by:JUICE},
+  march:{yt:'FBcB5q4xEAU',s:89,e:149,by:COFFEE},
+  lowjack:{yt:'aDpCmmzjsVI',s:406,e:462,by:JUICE}
 };
 const BAD = {
   catcow:['動作太快、用甩的','只有脖子在動，背沒有動'],
   hipflexor:['腰往前拱（骨盆前傾）','沒夾屁股，只是把身體往前倒'],
   figure4:['硬拉到會痛','頭和肩膀跟著用力抬起來'],
   hamstring:['伸展的那隻腳膝蓋彎掉','另一隻腳離地、骨盆翻起來'],
-  doorway:['聳肩','手肘高過肩膀太多，壓到肩膀前側'],
-  curlup:['抬太高變成仰臥起坐','用手把頭往上拉','下背用力壓平貼地'],
-  sideplank:['屁股往後坐或往下垂','肩膀聳到耳朵旁邊'],
+  doorway:['聳肩','腰往前拱來代償','低頭駝背、頭往前伸'],
+  curlup:['捲太高變成仰臥起坐','下巴往前頂、用脖子硬拉','下背離地拱起'],
+  sideplank:['肩膀聳到耳朵旁邊','身體往前趴或往後翻','用甩的上下彈，沒有控制慢放'],
   birddog:['腳抬太高，腰跟著拱起來','骨盆往旁邊轉','動作太快沒有停住'],
   deadbug:['下背離地拱起','憋氣','手腳放太快'],
   plank:['塌腰','屁股翹太高','憋氣'],
@@ -380,12 +381,12 @@ const BAD = {
   clamshell:['骨盆往後翻（身體跟著轉）','兩個腳跟分開','用甩的，沒控制慢慢放'],
   sidelegraise:['腳尖朝天花板（變成大腿前側出力）','身體往後倒','抬太高，腰跟著側彎'],
   monsterwalk:['膝蓋往內夾','身體左右晃','站直沒有微蹲'],
-  squat:['膝蓋往內夾','腳跟離地','下蹲時腰拱起或圓背'],
+  squat:['膝蓋往內夾','腳跟離地、重心壓在腳尖','下蹲時圓背彎腰'],
   pushup:['塌腰','手肘往外開成 90 度','頭往前伸'],
   bandrow:['聳肩','身體往後倒來借力','駝背、腰塌著坐'],
-  shouldertap:['屁股左右晃、身體跟著轉','塌腰或屁股翹太高','摸肩太快、沒有控制'],
+  shouldertap:['屁股左右晃、身體跟著轉','塌腰或屁股翹太高','換手太快、沒有控制'],
   march:['身體往後仰','腳落地太重'],
-  lowjack:['跳起來（這個版本不用跳）','膝蓋往內夾']
+  lowjack:['膝蓋打直硬邦邦落地、腳步聲太大','膝蓋往內夾','聳肩憋氣']
 };
 const pickLv=(v,lv)=>Array.isArray(v)?v[lv]:v;
 
@@ -647,8 +648,8 @@ function renderHome(){
       <p>你原本的組合是很好的基礎（前側核心、下肢、上肢推），但針對你的狀況<b>少了幾塊關鍵</b>：</p>
       <ul>
         <li><b>臀中肌</b>：屁股上緣外側痠、側步蹲和弓箭步特別痠，很常見是久坐讓臀中肌又弱又累。→ 蚌殼式、側躺抬腿、彈力圈側走。</li>
-        <li><b>側向與抗旋轉核心</b>：棒式只練前面。閃過腰的人更需要側棒式、鳥狗式、棒式摸肩，讓腰「不亂動」。</li>
-        <li><b>久坐的緊繃</b>：髖屈肌、胸口會變緊，把骨盆和肩膀往前拉。→ 髖屈肌伸展、門框伸展、彈力繩划船。</li>
+        <li><b>側向與抗旋轉核心</b>：棒式只練前面。閃過腰的人更需要側棒式抬臀、鳥狗式、棒式單手摸肚，讓腰「不亂動」。</li>
+        <li><b>久坐的緊繃</b>：髖屈肌、胸口會變緊，把骨盆和肩膀往前拉。→ 髖屈肌伸展、背後交扣擴胸、彈力繩划船。</li>
       </ul>
       <p><b>有氧 vs 肌力？</b>以你的目標（護腰、改善痠痛）來說，這 10 分鐘大約 <b>70% 核心/肌力、20% 伸展、10% 有氧</b>。腰的問題「穩定」比「流汗」重要；有氧建議靠日常補：每坐 45～60 分鐘起來走 2 分鐘、一天走 6000～8000 步。</p>
       <p><b>暫時沒排弓箭步、側步蹲</b>，因為現在做會痠。練 4～6 週臀中肌、痠痛改善後，再慢慢加回來。</p>
