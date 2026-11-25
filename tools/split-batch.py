@@ -50,7 +50,8 @@ def normalize_py(s: str) -> str:
 def text_to_syllables(text: str):
     from pypinyin import Style, pinyin
 
-    expanded = expand_numbers(text)
+    cleaned = re.sub(r"<[^>]+>", "", text)
+    expanded = expand_numbers(cleaned)
     chars = [ch for ch in expanded if re.match(r"[\u4e00-\u9fffA-Za-z]", ch)]
     if not chars:
         return []

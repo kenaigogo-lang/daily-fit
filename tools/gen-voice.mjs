@@ -1,6 +1,6 @@
-// 用 Google Gemini TTS 把 data.js 裡所有要講的句子做成 mp3，放在 audio/。
+// 用 Google Gemini 3.8 TTS（Voice Design 專屬台灣甜美女友聲線 + 微糖口語台詞）把 data.js 句子做成 mp3。
 // 已經存在的檔案不會重做；不再用到的舊檔會刪掉。由 GitHub Actions「產生語音」執行。
-// 多句產生時會自動分批合併呼叫（節省免費方案每日請求額度，並讓短詞音色一致），
+// 多句產生時自動分批合併呼叫（節省免費方案每日請求額度，並讓短詞音色穩定一致），
 // 再交由 tools/split-batch.py 用 faster-whisper + 拼音序列對齊精準切分。
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
@@ -22,11 +22,30 @@ if (!apiKey) {
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-// 將文字正規化為適合朗讀的形式（不影響 voiceFile 雜湊檔名）：
-// 1. 數字範圍「8～10」轉為「8 到 10」
-// 2. 括號補充說明改用逗號銜接，避免 TTS 把括號當成舞台指示略過
+// 畫面文字維持簡潔，轉成語音時自動替換成溫柔甜美女友陪伴口吻（不影響 voiceFile 雜湊檔名）
+const SWEET_MAP = {
+  '準備，第一個動作': '準備好囉，第一個是',
+  '休息，下一個': '做得好棒，先休息一下喔，下一個是',
+  '換邊，下一個': '換邊囉，接著做',
+  '組間休息，下一個': '辛苦啦，喘口氣休息一下喔，等一下繼續做',
+  '左邊': '左邊喔',
+  '右邊': '右邊喔',
+  '完成！太棒了': '<laugh> 耶，全部做完囉！你今天真的超棒的，辛苦你啦！'
+};
+
 function toSpoken(text) {
-  return text
+  if (VOICE.sweetScript) {
+    if (SWEET_MAP[text]) return SWEET_MAP[text];
+    let m;
+    if ((m = text.match(/^(\d+)\s*下$/))) return `做 ${m[1]} 下喔`;
+    if ((m = text.match(/^(\d+)\s*秒$/))) return `一起做 ${m[1]} 秒喔`;
+    if ((m = text.match(/^每下停\s*(\d+)\s*秒$/))) return `每一下停 ${m[1]} 秒喔`;
+  }
+  let out = text;
+  if (VOICE.sweetScript) {
+    out = out.replace(/準備好就按開始。?$/, '準備好我們就按開始囉！');
+  }
+  return out
     .replace(/(\d+)\s*[～~－-]\s*(\d+)/g, '$1 到 $2')
     .replace(/（([^）]+)）/g, '，$1，')
     .replace(/\(([^)]+)\)/g, '，$1，')
@@ -38,7 +57,6 @@ function toSpoken(text) {
 
 const ensureEndPunct = s => (/[。！？]$/.test(s) ? s : s + '。');
 
-// 平均分配切塊（例如 28 句上限 7 → 4 批各 7 句；52 句上限 13 → 4 批各 13 句）
 function balancedChunks(arr, maxSize) {
   if (!arr.length) return [];
   const groups = Math.ceil(arr.length / maxSize);
@@ -85,7 +103,66 @@ let modelIdx = 0;
 let lastCallStart = 0;
 const MIN_INTERVAL_MS = 21_000; // 免費方案每分鐘 3 次（間隔 21 秒最穩）
 
-async function synthesizeWav(transcript, outWav) {
+// 取得或建立 Voice Design 專屬甜美女友聲線；若目前帳號不支援 Voice Design 則平滑退回內建高音柔聲 Achernar
+async function resolveTargetVoice() {
+  if (!VOICE.designName || !VOICE.designPrompt) {
+    return { id: VOICE.name, isCustom: false };
+  }
+  try {
+    const listRes = await fetch('https://generativelanguage.googleapis.com/v1beta/voices?type=prompted&page_size=50', {
+      headers: { 'x-goog-api-key': apiKey }
+    });
+    if (listRes.ok) {
+      const listData = await listRes.json();
+      const found = (listData.voices || []).find(v => (v.display_name || v.displayName) === VOICE.designName && v.id);
+      if (found) {
+        console.log(`🎤 重用專案已建立的專屬女友聲線：${found.id} (${VOICE.designName})`);
+        return { id: found.id, isCustom: true };
+      }
+    }
+
+    console.log(`🎨 正在用 Gemini Voice Design 捏製專屬聲線 (${VOICE.designName})...`);
+    lastCallStart = Date.now();
+    const createRes = await fetch('https://generativelanguage.googleapis.com/v1beta/voices', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': apiKey
+      },
+      body: JSON.stringify({
+        store: true,
+        voice: {
+          type: 'prompted',
+          display_name: VOICE.designName,
+          model: models[0],
+          gender: 'female',
+          language_code: 'cmn-TW',
+          region_code: 'TW',
+          prompted: {
+            input: VOICE.designPrompt
+          }
+        }
+      })
+    });
+
+    if (createRes.ok) {
+      const created = await createRes.json();
+      const newId = created?.id || created?.voice?.id;
+      if (newId) {
+        console.log(`✨ 成功建立專屬台灣甜美女友聲線：${newId}`);
+        return { id: newId, isCustom: true };
+      }
+    } else {
+      const errTxt = await createRes.text();
+      console.warn(`ℹ️ Voice Design 回應 ${createRes.status}，改用內建高音溫柔女聲 ${VOICE.name}（${errTxt.slice(0, 160)}）`);
+    }
+  } catch (e) {
+    console.warn(`ℹ️ Voice Design 連線略過，改用內建高音溫柔女聲 ${VOICE.name}：${e.message}`);
+  }
+  return { id: VOICE.name, isCustom: false };
+}
+
+async function synthesizeWav(transcript, outWav, targetVoice) {
   for (let attempt = 1; ; attempt++) {
     if (lastCallStart > 0) {
       const wait = MIN_INTERVAL_MS - (Date.now() - lastCallStart);
@@ -94,8 +171,15 @@ async function synthesizeWav(transcript, outWav) {
     const model = models[modelIdx];
     lastCallStart = Date.now();
 
+    const style = targetVoice.isCustom
+      ? VOICE.style
+      : `Natural Taiwanese Mandarin accent, sweet cute high-pitched girlfriend voice, ${VOICE.style || ''}`.trim();
     const part = { text: transcript };
-    if (VOICE.style) part.speechMetadata = { style: VOICE.style };
+    if (style) part.speechMetadata = { style };
+
+    const voiceConfig = targetVoice.isCustom
+      ? { voice: targetVoice.id }
+      : { prebuiltVoiceConfig: { voiceName: targetVoice.id } };
 
     const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
       method: 'POST',
@@ -107,11 +191,7 @@ async function synthesizeWav(transcript, outWav) {
         contents: [{ role: 'user', parts: [part] }],
         generationConfig: {
           responseModalities: ['AUDIO'],
-          speechConfig: {
-            voiceConfig: {
-              prebuiltVoiceConfig: { voiceName: VOICE.name }
-            }
-          }
+          speechConfig: { voiceConfig }
         }
       })
     });
@@ -136,9 +216,7 @@ async function synthesizeWav(transcript, outWav) {
       console.error(
         '❌ Google AI Studio 回傳 402（Prepay 預付額度為 $0）：\n' +
         '   這把 GEMINI_API_KEY 所屬的專案已綁定 Prepay 計費帳戶，但 AI Studio 預付餘額為 0（綁定計費後不會自動退回免費方案）。\n' +
-        '   解決方式（二擇一）：\n' +
-        '   1.【免費方案】到 https://aistudio.google.com/projects 建立一個「未綁定計費（Free tier）」的新專案並產生新的 API Key 更新至 GitHub Secrets。\n' +
-        '   2.【預付儲值】到 https://aistudio.google.com/projects 的 Billing 頁面點選 Buy credits 儲值（產生全部 80 句音檔僅需約 $0.04 美金）。'
+        '   請改用未綁定計費（Free tier）專案的 API Key，或至 AI Studio Billing 頁面儲值。'
       );
       process.exit(1);
     }
@@ -177,22 +255,22 @@ let missing = lines.filter(t => !fs.existsSync(file(t)));
 let made = 0;
 
 if (missing.length > 0) {
-  console.log(`準備產生 ${missing.length} 個語音檔（模型：${models[0]}，聲線：${VOICE.name}）`);
+  const targetVoice = await resolveTargetVoice();
+  console.log(`準備產生 ${missing.length} 個語音檔（模型：${models[0]}，聲線：${targetVoice.id}）`);
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'daily-fit-tts-'));
   const worker = startSplitWorker();
   let batchSeq = 0;
 
   try {
-    // 最多三輪：第 1 輪分批合併（約 8 次請求完成全部 80 句），若有個別句子切分未過則縮小批次補做
     const passes = missing.length <= 5
       ? [{ label: '單句產生', makeBatches: list => list.map(t => [t]) }]
       : [
           {
             label: '批次產生',
             makeBatches: list => {
-              const shortLines = list.filter(t => !/[。；]/.test(t));
-              const longLines = list.filter(t => /[。；]/.test(t));
-              return [...balancedChunks(shortLines, 13), ...balancedChunks(longLines, 7)];
+              const shortLines = list.filter(t => toSpoken(t).length <= 25);
+              const longLines = list.filter(t => toSpoken(t).length > 25);
+              return [...balancedChunks(shortLines, 13), ...balancedChunks(longLines, 8)];
             }
           },
           { label: '小批補做', makeBatches: list => balancedChunks(list, 3) },
@@ -212,7 +290,7 @@ if (missing.length > 0) {
           ? spokenList[0]
           : spokenList.map(ensureEndPunct).join('\n\n<long pause>\n\n');
 
-        const usedModel = await synthesizeWav(transcript, wavPath);
+        const usedModel = await synthesizeWav(transcript, wavPath, targetVoice);
         const spec = batch.map((raw, idx) => ({
           index: idx,
           text: spokenList[idx],
@@ -223,7 +301,7 @@ if (missing.length > 0) {
 
         for (const idx of res.saved || []) {
           made++;
-          console.log(`✓ [${usedModel}]`, file(batch[idx]), batch[idx].slice(0, 32));
+          console.log(`✓ [${usedModel}]`, file(batch[idx]), '→', spokenList[idx].slice(0, 34));
         }
         if (res.failed?.length) {
           console.warn(`↻ 本批有 ${res.failed.length} 句將於下一輪補做：`, res.failed.map(i => batch[i].slice(0, 20)).join(' / '));

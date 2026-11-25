@@ -96,8 +96,11 @@ function gearLine(rid,lv){
 const VOICE = {
   model:'gemini-3.8-flash-tts',
   fallbackModel:'gemini-3.8-flash-lite-tts',
-  name:'Leda',
-  style:'Natural Taiwanese Mandarin accent, warm, friendly, upbeat young female fitness coach, clear brisk pace',
+  designName:'daily-fit-sweet-tw-gf-v1',
+  designPrompt:'A sweet, gentle, cute high-pitched young Taiwanese woman in her early twenties with a soft, warm, affectionate girlfriend voice, light natural breathiness, and an authentic Taipei Mandarin accent.',
+  name:'Achernar',
+  style:'Sweet, gentle, affectionate smiling tone, soft close-mic intimate delivery, unhurried loving pace',
+  sweetScript:'gf-v1',
   rate:'1.0'
 };
 const SIDES = ['左邊','右邊'];
@@ -117,7 +120,7 @@ function allVoiceLines(){
 }
 // 檔名 = 聲音設定＋文字的雜湊：換聲音、改口吻或改字就會產生新檔
 function voiceFile(text){
-  const s=VOICE.name+'|'+(VOICE.style||'')+'|'+VOICE.rate+'|'+text; let h=0x811c9dc5;
+  const s=(VOICE.designName||VOICE.name)+'|'+(VOICE.style||'')+'|'+(VOICE.sweetScript||'')+'|'+VOICE.rate+'|'+text; let h=0x811c9dc5;
   for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,0x01000193)>>>0; }
   return 'audio/'+h.toString(16).padStart(8,'0')+'.mp3';
 }
