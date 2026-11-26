@@ -22,28 +22,28 @@ if (!apiKey) {
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-// 畫面文字維持簡潔，轉成語音時自動替換成溫柔甜美女友陪伴口吻（不影響 voiceFile 雜湊檔名）
+// 畫面文字維持簡潔，轉成語音時自動替換成自然可愛的好友陪伴口吻（不影響 voiceFile 雜湊檔名）
 const SWEET_MAP = {
-  '準備，第一個動作': '準備好囉，第一個是',
-  '休息，下一個': '做得好棒，先休息一下喔，下一個是',
-  '換邊，下一個': '換邊囉，接著做',
-  '組間休息，下一個': '辛苦啦，喘口氣休息一下喔，等一下繼續做',
-  '左邊': '左邊喔',
-  '右邊': '右邊喔',
-  '完成！太棒了': '<laugh> 耶，全部做完囉！你今天真的超棒的，辛苦你啦！'
+  '準備，第一個動作': '準備囉，第一個是',
+  '休息，下一個': '休息一下，下一個是',
+  '換邊，下一個': '換邊囉，接下來',
+  '組間休息，下一個': '先喘口氣，等等再一組',
+  '左邊': '左邊',
+  '右邊': '右邊',
+  '完成！太棒了': '耶，全部做完啦，辛苦囉！'
 };
 
 function toSpoken(text) {
   if (VOICE.sweetScript) {
     if (SWEET_MAP[text]) return SWEET_MAP[text];
     let m;
-    if ((m = text.match(/^(\d+)\s*下$/))) return `做 ${m[1]} 下喔`;
-    if ((m = text.match(/^(\d+)\s*秒$/))) return `一起做 ${m[1]} 秒喔`;
-    if ((m = text.match(/^每下停\s*(\d+)\s*秒$/))) return `每一下停 ${m[1]} 秒喔`;
+    if ((m = text.match(/^(\d+)\s*下$/))) return `${m[1]} 下喔`;
+    if ((m = text.match(/^(\d+)\s*秒$/))) return `${m[1]} 秒喔`;
+    if ((m = text.match(/^每下停\s*(\d+)\s*秒$/))) return `每下停 ${m[1]} 秒`;
   }
   let out = text;
   if (VOICE.sweetScript) {
-    out = out.replace(/準備好就按開始。?$/, '準備好我們就按開始囉！');
+    out = out.replace(/準備好就按開始。?$/, '準備好就按開始囉！');
   }
   return out
     .replace(/(\d+)\s*[～~－-]\s*(\d+)/g, '$1 到 $2')
@@ -103,10 +103,12 @@ let modelIdx = 0;
 let lastCallStart = 0;
 const MIN_INTERVAL_MS = 21_000; // 免費方案每分鐘 3 次（間隔 21 秒最穩）
 
-// 取得或建立 Voice Design 專屬甜美女友聲線；若目前帳號不支援 Voice Design 則平滑退回內建高音柔聲 Achernar
+// 取得或建立 Voice Design / Remix 專屬聲線；失敗時優先退回 baseVoice，再退回內建女聲
 async function resolveTargetVoice() {
   if (!VOICE.designName || !VOICE.designPrompt) {
-    return { id: VOICE.name, isCustom: false };
+    return VOICE.baseVoice
+      ? { id: VOICE.baseVoice, isCustom: true }
+      : { id: VOICE.name, isCustom: false };
   }
   try {
     const listRes = await fetch('https://generativelanguage.googleapis.com/v1beta/voices?type=prompted&page_size=50', {
@@ -116,13 +118,17 @@ async function resolveTargetVoice() {
       const listData = await listRes.json();
       const found = (listData.voices || []).find(v => (v.display_name || v.displayName) === VOICE.designName && v.id);
       if (found) {
-        console.log(`🎤 重用專案已建立的專屬女友聲線：${found.id} (${VOICE.designName})`);
+        console.log(`🎤 重用專案已建立的專屬聲線：${found.id} (${VOICE.designName})`);
         return { id: found.id, isCustom: true };
       }
     }
 
-    console.log(`🎨 正在用 Gemini Voice Design 捏製專屬聲線 (${VOICE.designName})...`);
+    const modeLabel = VOICE.baseVoice ? `Voice Remix（基於 ${VOICE.baseVoice}）` : 'Voice Design';
+    console.log(`🎨 正在用 Gemini ${modeLabel} 建立專屬聲線 (${VOICE.designName})...`);
     lastCallStart = Date.now();
+    const prompted = { input: VOICE.designPrompt };
+    if (VOICE.baseVoice) prompted.base_voice = VOICE.baseVoice;
+
     const createRes = await fetch('https://generativelanguage.googleapis.com/v1beta/voices', {
       method: 'POST',
       headers: {
@@ -138,9 +144,7 @@ async function resolveTargetVoice() {
           gender: 'female',
           language_code: 'cmn-TW',
           region_code: 'TW',
-          prompted: {
-            input: VOICE.designPrompt
-          }
+          prompted
         }
       })
     });
@@ -149,15 +153,19 @@ async function resolveTargetVoice() {
       const created = await createRes.json();
       const newId = created?.id || created?.voice?.id;
       if (newId) {
-        console.log(`✨ 成功建立專屬台灣甜美女友聲線：${newId}`);
+        console.log(`✨ 成功建立專屬聲線：${newId}`);
         return { id: newId, isCustom: true };
       }
     } else {
       const errTxt = await createRes.text();
-      console.warn(`ℹ️ Voice Design 回應 ${createRes.status}，改用內建高音溫柔女聲 ${VOICE.name}（${errTxt.slice(0, 160)}）`);
+      console.warn(`ℹ️ ${modeLabel} 回應 ${createRes.status}，改用備援聲線（${errTxt.slice(0, 180)}）`);
     }
   } catch (e) {
-    console.warn(`ℹ️ Voice Design 連線略過，改用內建高音溫柔女聲 ${VOICE.name}：${e.message}`);
+    console.warn(`ℹ️ Voice Design/Remix 連線略過，改用備援聲線：${e.message}`);
+  }
+  if (VOICE.baseVoice) {
+    console.log(`🎤 沿用既有專屬聲線：${VOICE.baseVoice}`);
+    return { id: VOICE.baseVoice, isCustom: true };
   }
   return { id: VOICE.name, isCustom: false };
 }

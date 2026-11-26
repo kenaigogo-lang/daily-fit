@@ -96,11 +96,12 @@ function gearLine(rid,lv){
 const VOICE = {
   model:'gemini-3.8-flash-tts',
   fallbackModel:'gemini-3.8-flash-lite-tts',
-  designName:'daily-fit-sweet-tw-gf-v1',
-  designPrompt:'A sweet, gentle, cute high-pitched young Taiwanese woman in her early twenties with a soft, warm, affectionate girlfriend voice, light natural breathiness, and an authentic Taipei Mandarin accent.',
+  baseVoice:'voice_334y758gd8gd',
+  designName:'daily-fit-sweet-tw-gf-v2',
+  designPrompt:'Keep the same sweet, cute, high-pitched young Taiwanese female voice and natural Taipei accent, but remove the breathiness and whispery quality to make it cleaner, crisper, brighter, and naturally conversational at a normal friendly speaking pace.',
   name:'Achernar',
-  style:'Sweet, gentle, affectionate smiling tone, soft close-mic intimate delivery, unhurried loving pace',
-  sweetScript:'gf-v1',
+  style:'Natural conversational pace like chatting with a close friend, bright, sweet and cute tone, clear crisp voice without breathiness, relaxed and genuine',
+  sweetScript:'gf-v2',
   rate:'1.0'
 };
 const SIDES = ['左邊','右邊'];
