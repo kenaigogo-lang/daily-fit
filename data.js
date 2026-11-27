@@ -96,12 +96,11 @@ function gearLine(rid,lv){
 const VOICE = {
   model:'gemini-3.8-flash-tts',
   fallbackModel:'gemini-3.8-flash-lite-tts',
-  baseVoice:'voice_334y758gd8gd',
-  designName:'daily-fit-sweet-tw-gf-v2',
-  designPrompt:'Keep the same sweet, cute, high-pitched young Taiwanese female voice and natural Taipei accent, but remove the breathiness and whispery quality to make it cleaner, crisper, brighter, and naturally conversational at a normal friendly speaking pace.',
-  name:'Achernar',
-  style:'Natural conversational pace like chatting with a close friend, bright, sweet and cute tone, clear crisp voice without breathiness, relaxed and genuine',
-  sweetScript:'gf-v2',
+  designName:'daily-fit-clear-cute-tw-v3',
+  designPrompt:'A bright, clear, cute high-pitched young Taiwanese woman in her early twenties with an authentic Taipei Mandarin accent. Her voice is crisp, sweet, and lively with zero breathiness and no whispery quality, speaking at a natural upbeat conversational pace like a cheerful close friend.',
+  name:'Leda',
+  style:'Crisp, bright, cute natural voice with zero breathiness, lively friendly chat pace, smooth continuous flow without long pauses',
+  sweetScript:'gf-v3-unified',
   rate:'1.0'
 };
 const SIDES = ['左邊','右邊'];
@@ -120,8 +119,40 @@ function allVoiceLines(){
   return [...set];
 }
 // 檔名 = 聲音設定＋文字的雜湊：換聲音、改口吻或改字就會產生新檔
-function voiceFile(text){
-  const s=(VOICE.designName||VOICE.name)+'|'+(VOICE.style||'')+'|'+(VOICE.sweetScript||'')+'|'+VOICE.rate+'|'+text; let h=0x811c9dc5;
+// parts 可以是單句字串或句子陣列（會合成同一個連續播放的 mp3）
+function voiceKey(parts){
+  return [].concat(parts).filter(Boolean).join('\n');
+}
+function voiceFile(parts){
+  const s=(VOICE.designName||VOICE.name)+'|'+(VOICE.style||'')+'|'+(VOICE.sweetScript||'')+'|'+VOICE.rate+'|'+voiceKey(parts); let h=0x811c9dc5;
   for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,0x01000193)>>>0; }
   return 'audio/'+h.toString(16).padStart(8,'0')+'.mp3';
+}
+// 列出所有課表與難度會播到的「完整單一音檔」組合（每項為 parts 陣列）
+function allVoiceClips(){
+  const map=new Map();
+  const add=parts=>{ const c=[].concat(parts).filter(Boolean); if(c.length) map.set(c.join('\n'),c); };
+  add([DONE_LINE]);
+  for(const [rid,R] of Object.entries(ROUTINES)) for(let lv=0;lv<LEVELS.length;lv++){
+    const g=gearLine(rid,lv); if(g) add([g]);
+    const out=[];
+    for(const b of R.blocks) for(let r=1;r<=(b.rounds||1);r++) for(const it of b.items){
+      const ex=EX[it.ex], sets=it.sets||1, amt=scaled(it,lv);
+      for(let s=1;s<=sets;s++) for(const side of ex.sided?SIDES:[null])
+        out.push({ex:it.ex,amt,side,uid:it,set:s,round:r});
+    }
+    const cued=new Set();
+    out.forEach((st,idx)=>{
+      const ex=EX[st.ex], base=[ex.name,st.side,amtLine(st.amt),ex.hold&&holdLine(ex.hold)].filter(Boolean);
+      add(base);
+      if(!cued.has(st.ex)){ cued.add(st.ex); add([...base,cueLine(ex)]); }
+      if(idx===0) add([restLine(null,true),ex.name,st.side]);
+      const nx=out[idx+1];
+      if(nx){
+        const label=(nx.uid===st.uid&&nx.set===st.set&&nx.round===st.round)?'換邊':(nx.uid===st.uid?'組間休息':'休息');
+        add([restLine(label),EX[nx.ex].name,nx.side]);
+      }
+    });
+  }
+  return [...map.values()];
 }

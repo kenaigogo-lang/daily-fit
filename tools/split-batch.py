@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """
-將 Gemini TTS 產生的單段或多段合併 WAV 音檔，精準切分、去頭尾多餘空白並轉成 MP3。
-若傳入多句（以 <long pause> 分隔），會用 faster-whisper 取得字詞時間軸 + pypinyin 拼音序列對齊，
-再於兩句之間的最低能量靜音谷（Zero-Crossing）精準下刀，避免純靠靜音切分造成錯位。
+將 Gemini TTS 產生的單段或多段合併 WAV 音檔，精準切分、壓縮過長句中停頓、
+去頭尾多餘空白，並支援將多段無損 WAV 片段無縫拼接成單一 MP3（避免瀏覽器分段播放卡頓或被截斷）。
 """
 import io
 import json
@@ -84,35 +83,113 @@ def read_wav_pcm16(path: str):
     return np.frombuffer(raw, dtype=np.int16).copy(), 24000
 
 
-def trim_and_fade(pcm: np.ndarray, sr: int) -> np.ndarray:
+def write_wav_pcm16(pcm: np.ndarray, sr: int, out_path: str):
+    os.makedirs(os.path.dirname(out_path) or ".", exist_ok=True)
+    with wave.open(out_path, "wb") as w:
+        w.setnchannels(1)
+        w.setsampwidth(2)
+        w.setframerate(sr)
+        w.writeframes(np.asarray(pcm, dtype=np.int16).tobytes())
+
+
+def compress_internal_silences(
+    pcm: np.ndarray, sr: int, max_pause_sec: float = 0.30, target_pause_sec: float = 0.20
+) -> np.ndarray:
+    """將單句內部意外過長的空白（例如 >0.30s）平滑壓縮為自然的 0.20s，讓講解一口氣更順暢。"""
+    if len(pcm) < int(sr * 0.6):
+        return pcm
+    hop = max(1, int(sr * 0.010))  # 10ms frame
+    n_frames = len(pcm) // hop
+    if n_frames < 20:
+        return pcm
+    floats = pcm[: n_frames * hop].astype(np.float32) / 32768.0
+    rms = np.sqrt(np.mean(floats.reshape(n_frames, hop) ** 2, axis=1))
+    peak = float(np.max(rms)) if len(rms) else 0.0
+    thresh = max(0.008, min(0.025, peak * 0.06))
+    voiced = np.where(rms >= thresh)[0]
+    if len(voiced) < 2:
+        return pcm
+
+    first_v, last_v = int(voiced[0]), int(voiced[-1])
+    max_frames = int(round(max_pause_sec / 0.010))
+    keep_half = max(1, int(round((target_pause_sec / 2.0) * sr)))
+    xfade = min(int(sr * 0.015), keep_half // 2)
+
+    # 找出介於頭尾人聲之間、連續超過 max_frames 的靜音區段
+    cuts = []
+    f = first_v
+    while f <= last_v:
+        if rms[f] < thresh:
+            s = f
+            while f <= last_v and rms[f] < thresh:
+                f += 1
+            if (f - s) > max_frames:
+                s_samp = s * hop
+                e_samp = f * hop
+                if (e_samp - s_samp) > (2 * keep_half + xfade):
+                    cuts.append((s_samp, e_samp))
+        else:
+            f += 1
+
+    if not cuts:
+        return pcm
+
+    parts = []
+    cursor = 0
+    for s_samp, e_samp in cuts:
+        left_end = s_samp + keep_half
+        right_start = e_samp - keep_half
+        parts.append(pcm[cursor : left_end - xfade].astype(np.float32))
+        if xfade > 1:
+            a = pcm[left_end - xfade : left_end].astype(np.float32)
+            b = pcm[right_start : right_start + xfade].astype(np.float32)
+            w = 0.5 * (1.0 - np.cos(np.linspace(0, math.pi, xfade)))
+            parts.append(a * (1.0 - w) + b * w)
+        cursor = right_start + xfade
+    parts.append(pcm[cursor:].astype(np.float32))
+    out = np.concatenate(parts)
+    return np.clip(np.round(out), -32768, 32767).astype(np.int16)
+
+
+def trim_and_fade(
+    pcm: np.ndarray,
+    sr: int,
+    lead_ms: int = 45,
+    tail_ms: int = 95,
+    fade_in_ms: int = 10,
+    fade_out_ms: int = 18,
+    compress_pauses: bool = True,
+) -> np.ndarray:
     if len(pcm) == 0:
         return pcm
+    if compress_pauses:
+        pcm = compress_internal_silences(pcm, sr)
+
     win = max(1, int(sr * 0.015))  # 15ms frame
     hop = max(1, int(sr * 0.005))  # 5ms hop
     floats = pcm.astype(np.float32) / 32768.0
     if len(floats) < win:
         return pcm
 
-    # Compute frame RMS
     sq = floats * floats
     csum = np.concatenate(([0.0], np.cumsum(sq)))
     starts = np.arange(0, len(floats) - win + 1, hop)
     rms = np.sqrt((csum[starts + win] - csum[starts]) / win)
 
     peak = float(np.max(rms)) if len(rms) else 0.0
-    thresh = max(0.006, min(0.025, peak * 0.06))  # adaptive voice activity threshold
+    thresh = max(0.006, min(0.025, peak * 0.06))
     voiced = np.where(rms >= thresh)[0]
     if len(voiced) == 0:
         return pcm
 
-    lead_pad = int(sr * 0.055)   # 55ms lead-in
-    tail_pad = int(sr * 0.110)   # 110ms natural tail
+    lead_pad = int(sr * lead_ms / 1000.0)
+    tail_pad = int(sr * tail_ms / 1000.0)
     s_idx = max(0, int(starts[voiced[0]]) - lead_pad)
     e_idx = min(len(pcm), int(starts[voiced[-1]] + win) + tail_pad)
     clipped = pcm[s_idx:e_idx].astype(np.float32)
 
-    fade_in = min(int(sr * 0.012), len(clipped) // 4)
-    fade_out = min(int(sr * 0.020), len(clipped) // 4)
+    fade_in = min(int(sr * fade_in_ms / 1000.0), len(clipped) // 4)
+    fade_out = min(int(sr * fade_out_ms / 1000.0), len(clipped) // 4)
     if fade_in > 1:
         curve = 0.5 * (1.0 - np.cos(np.linspace(0, math.pi, fade_in)))
         clipped[:fade_in] *= curve
@@ -123,17 +200,16 @@ def trim_and_fade(pcm: np.ndarray, sr: int) -> np.ndarray:
     return np.clip(np.round(clipped), -32768, 32767).astype(np.int16)
 
 
-def save_mp3(pcm: np.ndarray, sr: int, out_path: str):
+def encode_mp3(pcm: np.ndarray, sr: int, out_path: str, bit_rate: int = 48000):
     import av
 
-    trimmed = trim_and_fade(pcm, sr)
     os.makedirs(os.path.dirname(out_path) or ".", exist_ok=True)
     with av.open(out_path, mode="w", format="mp3") as container:
         stream = container.add_stream("libmp3lame", rate=24000)
-        stream.bit_rate = 64000
+        stream.bit_rate = bit_rate
         stream.layout = "mono"
         resampler = av.AudioResampler(format="s16p", layout="mono", rate=24000)
-        frame = av.AudioFrame.from_ndarray(trimmed.reshape(1, -1), format="s16", layout="mono")
+        frame = av.AudioFrame.from_ndarray(pcm.reshape(1, -1), format="s16", layout="mono")
         frame.sample_rate = sr
         for rframe in resampler.resample(frame):
             for packet in stream.encode(rframe):
@@ -143,6 +219,43 @@ def save_mp3(pcm: np.ndarray, sr: int, out_path: str):
                 container.mux(packet)
         for packet in stream.encode(None):
             container.mux(packet)
+
+
+def save_clip(pcm: np.ndarray, sr: int, out_path: str):
+    if out_path.lower().endswith(".wav"):
+        # 中間無損暫存片段：先壓縮過長停頓並緊密裁切，保留無損音質供後續拼接
+        trimmed = trim_and_fade(pcm, sr, lead_ms=22, tail_ms=42, fade_in_ms=8, fade_out_ms=12, compress_pauses=True)
+        write_wav_pcm16(trimmed, sr, out_path)
+    else:
+        trimmed = trim_and_fade(pcm, sr, lead_ms=45, tail_ms=95, fade_in_ms=10, fade_out_ms=18, compress_pauses=True)
+        encode_mp3(trimmed, sr, out_path)
+
+
+def stitch_clips(inputs: list, out_path: str):
+    """將多段無損 WAV 片段依指定間隔無縫接成單一 MP3。"""
+    sr = 24000
+    pieces = []
+    for idx, item in enumerate(inputs):
+        pcm, file_sr = read_wav_pcm16(item["wav"])
+        if file_sr != sr:
+            target_len = int(round(len(pcm) * sr / file_sr))
+            x_old = np.linspace(0.0, 1.0, len(pcm), endpoint=False)
+            x_new = np.linspace(0.0, 1.0, target_len, endpoint=False)
+            pcm = np.interp(x_new, x_old, pcm.astype(np.float32)).astype(np.int16)
+        pieces.append(pcm)
+        gap_ms = int(item.get("gap_after_ms", 0))
+        if idx < len(inputs) - 1 and gap_ms > 0:
+            pieces.append(np.zeros(int(sr * gap_ms / 1000.0), dtype=np.int16))
+
+    if not pieces:
+        return {"ok": False, "reason": "empty_inputs"}
+
+    # 外圍加上自然淡入淡出與適度頭尾留白
+    pad_head = np.zeros(int(sr * 0.025), dtype=np.int16)
+    pad_tail = np.zeros(int(sr * 0.060), dtype=np.int16)
+    combined = np.concatenate([pad_head, *pieces, pad_tail])
+    encode_mp3(combined, sr, out_path)
+    return {"ok": True, "sec": round(len(combined) / sr, 2)}
 
 
 def syl_score(a: str, b: str) -> float:
@@ -159,7 +272,7 @@ def find_quiet_cut(pcm: np.ndarray, sr: int, t_lo: float, t_hi: float):
     n = len(pcm)
     i_lo = max(0, min(n - 1, int(t_lo * sr)))
     i_hi = max(i_lo + 1, min(n, int(t_hi * sr)))
-    win = max(1, int(sr * 0.035))  # 35ms silence window
+    win = max(1, int(sr * 0.035))
     step = max(1, int(sr * 0.005))
 
     floats = pcm[i_lo:i_hi].astype(np.float32) / 32768.0
@@ -178,7 +291,6 @@ def find_quiet_cut(pcm: np.ndarray, sr: int, t_lo: float, t_hi: float):
     w_start = i_lo + int(starts[best_k])
     w_end = min(n - 1, w_start + win)
     seg = pcm[w_start:w_end]
-    # Pick zero-crossing or minimum absolute sample near midpoint of quietest window
     zc = np.where(np.diff(np.signbit(seg)))[0]
     if len(zc) > 0:
         center = len(seg) // 2
@@ -214,10 +326,9 @@ def split_batch(wav_path: str, spec: list):
         syl_cnt = len(text_to_syllables(spec[0]["text"]))
         if syl_cnt >= 6 and total_sec < syl_cnt * 0.11:
             return {"saved": [], "failed": [spec[0]["index"]], "reason": "truncated_single_audio"}
-        save_mp3(pcm, sr, spec[0]["out"])
+        save_clip(pcm, sr, spec[0]["out"])
         return {"saved": [spec[0]["index"]], "failed": []}
 
-    # Resample to 16kHz float32 for faster-whisper
     floats = pcm.astype(np.float32) / 32768.0
     if sr != 16000:
         target_len = int(round(len(floats) * 16000 / sr))
@@ -236,7 +347,7 @@ def split_batch(wav_path: str, spec: list):
         condition_on_previous_text=False,
     )
 
-    obs = []  # [(syl, start, end)]
+    obs = []
     for seg in segments:
         for w in seg.words or []:
             syls = text_to_syllables(w.word)
@@ -247,7 +358,7 @@ def split_batch(wav_path: str, spec: list):
             for idx, s in enumerate(syls):
                 obs.append((s, float(w.start) + idx * step, float(w.start) + (idx + 1) * step))
 
-    exp = []  # [(syl, item_pos, local_idx)]
+    exp = []
     item_syl_counts = []
     for pos, it in enumerate(spec):
         syls = text_to_syllables(it["text"])
@@ -261,10 +372,9 @@ def split_batch(wav_path: str, spec: list):
     if M == 0:
         return {"saved": [], "failed": [it["index"] for it in spec], "reason": "no_speech_recognized"}
 
-    # Global Needleman-Wunsch alignment
     gap = -1.4
     dp = np.zeros((N + 1, M + 1), dtype=np.float32)
-    ptr = np.zeros((N + 1, M + 1), dtype=np.uint8)  # 1: diag, 2: up (del), 3: left (ins)
+    ptr = np.zeros((N + 1, M + 1), dtype=np.uint8)
     for i in range(1, N + 1):
         dp[i, 0] = i * gap
         ptr[i, 0] = 2
@@ -289,9 +399,8 @@ def split_batch(wav_path: str, spec: list):
                 dp[i, j] = d_left
                 ptr[i, j] = 3
 
-    # Backtrack
     i, j = N, M
-    item_matches = [[] for _ in spec]  # list of (obs_idx, score, local_idx)
+    item_matches = [[] for _ in spec]
     while i > 0 or j > 0:
         p = ptr[i, j]
         if i > 0 and j > 0 and p == 1:
@@ -305,7 +414,6 @@ def split_batch(wav_path: str, spec: list):
         else:
             j -= 1
 
-    # Determine valid items & time spans
     K = len(spec)
     item_ok = [False] * K
     t_first = [0.0] * K
@@ -324,14 +432,12 @@ def split_batch(wav_path: str, spec: list):
             if edges_ok and t_last[pos] > t_first[pos]:
                 item_ok[pos] = True
 
-    # Enforce monotonic ordering between consecutive valid items
     for pos in range(K - 1):
         if item_ok[pos] and item_ok[pos + 1]:
             if t_first[pos + 1] < t_last[pos] - 0.12:
                 item_ok[pos] = False
                 item_ok[pos + 1] = False
 
-    # Compute cut points between consecutive items
     cuts = [0] * (K + 1)
     cuts[0] = 0
     cuts[K] = len(pcm)
@@ -347,7 +453,6 @@ def split_batch(wav_path: str, spec: list):
             mid = 0.5 * (t_last[b - 1] + t_first[b])
             lo, hi = mid - 0.10, mid + 0.10
         cut_sample, min_rms = find_quiet_cut(pcm, sr, lo, hi)
-        # Ensure we didn't cut right through loud speech
         if min_rms > 0.09:
             boundary_ok[b] = False
         else:
@@ -358,11 +463,11 @@ def split_batch(wav_path: str, spec: list):
         if not (item_ok[pos] and boundary_ok[pos] and boundary_ok[pos + 1]):
             failed.append(it["index"])
             continue
-        seg_pcm = pcm[cuts[pos]:cuts[pos + 1]]
+        seg_pcm = pcm[cuts[pos] : cuts[pos + 1]]
         if len(seg_pcm) < int(sr * 0.18):
             failed.append(it["index"])
             continue
-        save_mp3(seg_pcm, sr, it["out"])
+        save_clip(seg_pcm, sr, it["out"])
         saved.append(it["index"])
 
     return {"saved": saved, "failed": failed}
@@ -375,7 +480,10 @@ def main():
             if not line:
                 continue
             req = json.loads(line)
-            res = split_batch(req["wav"], req["spec"])
+            if req.get("cmd") == "stitch":
+                res = stitch_clips(req["inputs"], req["out"])
+            else:
+                res = split_batch(req["wav"], req["spec"])
             print(json.dumps(res, ensure_ascii=False), flush=True)
         return
     if len(sys.argv) != 3:

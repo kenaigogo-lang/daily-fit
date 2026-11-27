@@ -1,8 +1,9 @@
-// 用 Google Gemini 3.8 TTS（Voice Design 專屬台灣甜美女友聲線 + 微糖口語台詞）把 data.js 句子做成 mp3。
-// 已經存在的檔案不會重做；不再用到的舊檔會刪掉。由 GitHub Actions「產生語音」執行。
-// 多句產生時自動分批合併呼叫（節省免費方案每日請求額度，並讓短詞音色穩定一致），
-// 再交由 tools/split-batch.py 用 faster-whisper + 拼音序列對齊精準切分。
+// 用 Google Gemini 3.8 TTS（Voice Design 零氣音清亮可愛女聲）把 data.js 語音做成單一步驟完整 MP3。
+// 做法：先用 8 批免費額度產生 80 個無損原子 WAV（每個動作講解用逗號順暢一口氣唸完），
+// 再將每個步驟會連播的組合（例如「動作名＋左右＋次數＋完整講解」）無縫拼接成單一 MP3，
+// 徹底避免手機瀏覽器分段切換卡頓、掉句或被下一步截斷。
 import { spawn } from 'node:child_process';
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -11,8 +12,12 @@ import vm from 'node:vm';
 
 const ctx = {};
 vm.createContext(ctx);
-vm.runInContext(fs.readFileSync('data.js', 'utf8') + '\n;this.out={lines:allVoiceLines(),file:voiceFile,VOICE};', ctx);
-const { lines, file, VOICE } = ctx.out;
+vm.runInContext(
+  fs.readFileSync('data.js', 'utf8') +
+    '\n;this.out={lines:allVoiceLines(),clips:allVoiceClips(),file:voiceFile,VOICE};',
+  ctx
+);
+const { lines, clips, file, VOICE } = ctx.out;
 
 const apiKey = process.env.GEMINI_API_KEY;
 if (!apiKey) {
@@ -22,7 +27,7 @@ if (!apiKey) {
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-// 畫面文字維持簡潔，轉成語音時自動替換成自然可愛的好友陪伴口吻（不影響 voiceFile 雜湊檔名）
+// 畫面文字維持簡潔，轉成語音時換成自然可愛的好友陪伴口吻（不影響 voiceFile 雜湊檔名）
 const SWEET_MAP = {
   '準備，第一個動作': '準備囉，第一個是',
   '休息，下一個': '休息一下，下一個是',
@@ -45,10 +50,19 @@ function toSpoken(text) {
   if (VOICE.sweetScript) {
     out = out.replace(/準備好就按開始。?$/, '準備好就按開始囉！');
   }
-  return out
+  out = out
     .replace(/(\d+)\s*[～~－-]\s*(\d+)/g, '$1 到 $2')
     .replace(/（([^）]+)）/g, '，$1，')
-    .replace(/\(([^)]+)\)/g, '，$1，')
+    .replace(/\(([^)]+)\)/g, '，$1，');
+
+  // 動作講解長句：把句中多個「。」「；」「：」換成「，」，讓模型一口氣自然流暢唸完不硬斷句
+  if (out.length > 25 && !out.startsWith('今天會用到彈力帶')) {
+    out = out
+      .replace(/。+$/, '')
+      .replace(/[。；：]/g, '，') + '。';
+  }
+
+  return out
     .replace(/([，。！？；：])[，、]+/g, '$1')
     .replace(/[，、]+([，。！？；：])/g, '$1')
     .replace(/^，+|，+$/g, '')
@@ -66,7 +80,7 @@ function balancedChunks(arr, maxSize) {
   return out;
 }
 
-function startSplitWorker() {
+function startAudioWorker() {
   const proc = spawn('python3', ['tools/split-batch.py', '--worker'], {
     stdio: ['pipe', 'pipe', 'inherit']
   });
@@ -76,20 +90,21 @@ function startSplitWorker() {
     const job = pending.shift();
     if (!job) return;
     try { job.resolve(JSON.parse(line)); }
-    catch (e) { job.reject(new Error(`切分回傳格式錯誤：${line}`)); }
+    catch (e) { job.reject(new Error(`音檔處理回傳格式錯誤：${line}`)); }
   });
   proc.on('exit', code => {
     while (pending.length) {
       pending.shift().reject(new Error(`split-batch.py 異常結束 (code=${code})`));
     }
   });
+  const call = payload =>
+    new Promise((resolve, reject) => {
+      pending.push({ resolve, reject });
+      proc.stdin.write(JSON.stringify(payload) + '\n');
+    });
   return {
-    split(wav, spec) {
-      return new Promise((resolve, reject) => {
-        pending.push({ resolve, reject });
-        proc.stdin.write(JSON.stringify({ wav, spec }) + '\n');
-      });
-    },
+    split: (wav, spec) => call({ wav, spec }),
+    stitch: (inputs, out) => call({ cmd: 'stitch', inputs, out }),
     close() {
       rl.close();
       proc.stdin.end();
@@ -103,7 +118,6 @@ let modelIdx = 0;
 let lastCallStart = 0;
 const MIN_INTERVAL_MS = 21_000; // 免費方案每分鐘 3 次（間隔 21 秒最穩）
 
-// 取得或建立 Voice Design / Remix 專屬聲線；失敗時優先退回 baseVoice，再退回內建女聲
 async function resolveTargetVoice() {
   if (!VOICE.designName || !VOICE.designPrompt) {
     return VOICE.baseVoice
@@ -124,7 +138,7 @@ async function resolveTargetVoice() {
     }
 
     const modeLabel = VOICE.baseVoice ? `Voice Remix（基於 ${VOICE.baseVoice}）` : 'Voice Design';
-    console.log(`🎨 正在用 Gemini ${modeLabel} 建立專屬聲線 (${VOICE.designName})...`);
+    console.log(`🎨 正在用 Gemini ${modeLabel} 建立全新專屬聲線 (${VOICE.designName})...`);
     lastCallStart = Date.now();
     const prompted = { input: VOICE.designPrompt };
     if (VOICE.baseVoice) prompted.base_voice = VOICE.baseVoice;
@@ -153,7 +167,7 @@ async function resolveTargetVoice() {
       const created = await createRes.json();
       const newId = created?.id || created?.voice?.id;
       if (newId) {
-        console.log(`✨ 成功建立專屬聲線：${newId}`);
+        console.log(`✨ 成功建立全新專屬聲線：${newId}`);
         return { id: newId, isCustom: true };
       }
     } else {
@@ -161,7 +175,7 @@ async function resolveTargetVoice() {
       console.warn(`ℹ️ ${modeLabel} 回應 ${createRes.status}，改用備援聲線（${errTxt.slice(0, 180)}）`);
     }
   } catch (e) {
-    console.warn(`ℹ️ Voice Design/Remix 連線略過，改用備援聲線：${e.message}`);
+    console.warn(`ℹ️ Voice Design 連線略過，改用備援聲線：${e.message}`);
   }
   if (VOICE.baseVoice) {
     console.log(`🎤 沿用既有專屬聲線：${VOICE.baseVoice}`);
@@ -181,7 +195,7 @@ async function synthesizeWav(transcript, outWav, targetVoice) {
 
     const style = targetVoice.isCustom
       ? VOICE.style
-      : `Natural Taiwanese Mandarin accent, sweet cute high-pitched girlfriend voice, ${VOICE.style || ''}`.trim();
+      : `Natural Taiwanese Mandarin accent, ${VOICE.style || ''}`.trim();
     const part = { text: transcript };
     if (style) part.speechMetadata = { style };
 
@@ -221,11 +235,7 @@ async function synthesizeWav(transcript, outWav, targetVoice) {
 
     const errText = await r.text();
     if (r.status === 402) {
-      console.error(
-        '❌ Google AI Studio 回傳 402（Prepay 預付額度為 $0）：\n' +
-        '   這把 GEMINI_API_KEY 所屬的專案已綁定 Prepay 計費帳戶，但 AI Studio 預付餘額為 0（綁定計費後不會自動退回免費方案）。\n' +
-        '   請改用未綁定計費（Free tier）專案的 API Key，或至 AI Studio Billing 頁面儲值。'
-      );
+      console.error('❌ Google AI Studio 回傳 402（Prepay 預付額度為 $0）：請改用免費方案專案 Key 或於 AI Studio 儲值。');
       process.exit(1);
     }
     if (r.status === 429) {
@@ -258,23 +268,35 @@ async function synthesizeWav(transcript, outWav, targetVoice) {
 }
 
 fs.mkdirSync('audio', { recursive: true });
-const wanted = new Set(lines.map(file));
-let missing = lines.filter(t => !fs.existsSync(file(t)));
+const wanted = new Set(clips.map(file));
+const missingClips = clips.filter(parts => !fs.existsSync(file(parts)));
 let made = 0;
 
-if (missing.length > 0) {
+if (missingClips.length > 0) {
+  // 找出缺少的完整音檔所需要的所有原子句子
+  const neededAtoms = new Set();
+  for (const parts of missingClips) for (const p of parts) neededAtoms.add(p);
+  const atomList = lines.filter(t => neededAtoms.has(t));
+  for (const p of neededAtoms) if (!atomList.includes(p)) atomList.push(p);
+
   const targetVoice = await resolveTargetVoice();
-  console.log(`準備產生 ${missing.length} 個語音檔（模型：${models[0]}，聲線：${targetVoice.id}）`);
+  console.log(`準備產生 ${atomList.length} 段基礎無損音訊，並合成 ${missingClips.length} 個完整單一 MP3（模型：${models[0]}，聲線：${targetVoice.id}）`);
+
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'daily-fit-tts-'));
-  const worker = startSplitWorker();
+  const atomDir = path.join(tmpDir, 'atoms');
+  fs.mkdirSync(atomDir, { recursive: true });
+  const atomWav = text =>
+    path.join(atomDir, crypto.createHash('md5').update(text).digest('hex').slice(0, 12) + '.wav');
+
+  const worker = startAudioWorker();
   let batchSeq = 0;
 
   try {
-    const passes = missing.length <= 5
+    const passes = atomList.length <= 5
       ? [{ label: '單句產生', makeBatches: list => list.map(t => [t]) }]
       : [
           {
-            label: '批次產生',
+            label: '批次產生基礎音訊',
             makeBatches: list => {
               const shortLines = list.filter(t => toSpoken(t).length <= 25);
               const longLines = list.filter(t => toSpoken(t).length > 25);
@@ -286,10 +308,10 @@ if (missing.length > 0) {
         ];
 
     for (const pass of passes) {
-      missing = lines.filter(t => !fs.existsSync(file(t)));
-      if (!missing.length) break;
-      const batches = pass.makeBatches(missing);
-      console.log(`▶ ${pass.label}：待做 ${missing.length} 句，共分 ${batches.length} 批`);
+      const todo = atomList.filter(t => !fs.existsSync(atomWav(t)));
+      if (!todo.length) break;
+      const batches = pass.makeBatches(todo);
+      console.log(`▶ ${pass.label}：待做 ${todo.length} 句，共分 ${batches.length} 批`);
 
       for (const batch of batches) {
         const wavPath = path.join(tmpDir, `batch_${++batchSeq}.wav`);
@@ -302,19 +324,38 @@ if (missing.length > 0) {
         const spec = batch.map((raw, idx) => ({
           index: idx,
           text: spokenList[idx],
-          out: file(raw)
+          out: atomWav(raw)
         }));
         const res = await worker.split(wavPath, spec);
         try { fs.unlinkSync(wavPath); } catch {}
 
         for (const idx of res.saved || []) {
-          made++;
-          console.log(`✓ [${usedModel}]`, file(batch[idx]), '→', spokenList[idx].slice(0, 34));
+          console.log(`✓ [${usedModel}]`, spokenList[idx].slice(0, 36));
         }
         if (res.failed?.length) {
           console.warn(`↻ 本批有 ${res.failed.length} 句將於下一輪補做：`, res.failed.map(i => batch[i].slice(0, 20)).join(' / '));
         }
       }
+    }
+
+    const stillMissingAtoms = atomList.filter(t => !fs.existsSync(atomWav(t)));
+    if (stillMissingAtoms.length > 0) {
+      throw new Error(`仍有 ${stillMissingAtoms.length} 段基礎音訊未成功產生：${stillMissingAtoms.slice(0, 5).join('、')}`);
+    }
+
+    // 無損拼接每個步驟的完整單一 MP3
+    console.log(`🔗 正在無縫拼接 ${missingClips.length} 個單一步驟 MP3...`);
+    for (const parts of missingClips) {
+      const outPath = file(parts);
+      const inputs = parts.map((p, idx) => {
+        const nextP = parts[idx + 1] || '';
+        // 短詞（動作名、左右、次數）之間給俐落 70ms 換氣；接長句動作講解前給 160ms 自然停頓
+        const gap_after_ms = idx === parts.length - 1 ? 0 : (nextP.length > 20 ? 160 : 70);
+        return { wav: atomWav(p), gap_after_ms };
+      });
+      const stRes = await worker.stitch(inputs, outPath);
+      if (!stRes.ok) throw new Error(`拼接失敗：${outPath} (${stRes.reason})`);
+      made++;
     }
   } finally {
     worker.close();
@@ -322,9 +363,9 @@ if (missing.length > 0) {
   }
 }
 
-const stillMissing = lines.filter(t => !fs.existsSync(file(t)));
+const stillMissing = clips.filter(parts => !fs.existsSync(file(parts)));
 if (stillMissing.length > 0) {
-  throw new Error(`仍有 ${stillMissing.length} 個語音檔未成功產生：${stillMissing.slice(0, 5).join('、')}`);
+  throw new Error(`仍有 ${stillMissing.length} 個完整音檔未成功產生`);
 }
 
 for (const f of fs.readdirSync('audio')) {
@@ -333,4 +374,4 @@ for (const f of fs.readdirSync('audio')) {
 }
 const ready = [...wanted].filter(p => fs.existsSync(p)).sort();
 fs.writeFileSync('audio/manifest.json', JSON.stringify(ready));
-console.log(`完成：新產生 ${made} 個，共 ${ready.length} 個語音檔`);
+console.log(`完成：新產生 ${made} 個，共 ${ready.length} 個完整單一語音檔`);

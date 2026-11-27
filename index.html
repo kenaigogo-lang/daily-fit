@@ -334,7 +334,7 @@ svg.trend{width:100%;height:120px;display:block}
 <div class="ov" id="tripov"></div>
 
 <!-- 改了這些檔案就把 ?v= 加一，避免手機用到舊的快取 -->
-<script src="data.js?v=6"></script>
+<script src="data.js?v=7"></script>
 <script src="penang.js?v=3"></script>
 <script src="trip.js?v=4"></script>
 <script>
@@ -691,7 +691,7 @@ function renderHome(){
 }
 function testVoice(){
   const on=S.settings.voice; S.settings.voice=true;
-  say([restLine(null,true),EX.clamshell.name,'左邊',amtLine({reps:15}),cueLine(EX.clamshell)]);
+  say([EX.clamshell.name,'左邊',amtLine({reps:15}),cueLine(EX.clamshell)]);
   S.settings.voice=on;
 }
 function badgeTile(s,b){
@@ -814,13 +814,14 @@ let voiceFiles=new Set();
 fetch('audio/manifest.json').then(r=>r.ok?r.json():[]).then(a=>{ voiceFiles=new Set(a); fillVoiceSelect(); }).catch(()=>{});
 const useHQ=()=>(!S.settings.voiceName||S.settings.voiceName===HQ);
 function legacyVoiceFile(text){
-  const s='daily-fit-sweet-tw-gf-v1|Sweet, gentle, affectionate smiling tone, soft close-mic intimate delivery, unhurried loving pace|gf-v1|1.0|'+text; let h=0x811c9dc5;
+  const s='daily-fit-sweet-tw-gf-v2|Natural conversational pace like chatting with a close friend, bright, sweet and cute tone, clear crisp voice without breathiness, relaxed and genuine|gf-v2|1.0|'+text; let h=0x811c9dc5;
   for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,0x01000193)>>>0; }
   return 'audio/'+h.toString(16).padStart(8,'0')+'.mp3';
 }
 const pickVoiceFile=t=>{ const f=voiceFile(t); if(voiceFiles.has(f)) return f; const old=legacyVoiceFile(t); return voiceFiles.has(old)?old:null; };
 const audioEl=new Audio(); let audioQueue=[];
 audioEl.onended=playNextClip;
+audioEl.onerror=playNextClip;
 function playNextClip(){
   const f=audioQueue.shift(); if(!f) return;
   const r=S.settings.rate/1.3; // 預設語速 1.3 = 原速 1.0x 播放，保留原音清甜自然語速
@@ -831,12 +832,16 @@ function stopSpeech(){
   audioQueue=[]; try{ audioEl.pause(); }catch(e){}
   try{ speechSynthesis.cancel(); }catch(e){}
 }
-// parts：要依序講的句子（每句都有對應音檔時播音檔）
+// parts：要依序講的句子（優先播預先合成的單一完整 mp3，不需分段切換）
 function say(parts){
   if(!S.settings.voice) return;
   parts=[].concat(parts).filter(Boolean);
   stopSpeech();
-  if(useHQ() && parts.every(p=>pickVoiceFile(p))){ audioQueue=parts.map(pickVoiceFile); playNextClip(); return; }
+  if(useHQ()){
+    const combo=voiceFile(parts);
+    if(voiceFiles.has(combo)){ audioQueue=[combo]; playNextClip(); return; }
+    if(parts.every(p=>pickVoiceFile(p))){ audioQueue=parts.map(pickVoiceFile); playNextClip(); return; }
+  }
   if(!('speechSynthesis' in window)) return;
   try{
     const u=new SpeechSynthesisUtterance(parts.join('，')), v=pickVoice();
@@ -844,17 +849,23 @@ function say(parts){
     u.rate=S.settings.rate; speechSynthesis.speak(u);
   }catch(e){}
 }
-// 先把這次課表會用到的音檔載進快取，播放時就不會卡頓
+// 先把這次課表會用到的完整音檔載進快取，播放時就不會卡頓
 function preloadVoice(steps){
   if(!useHQ()||!voiceFiles.size) return;
-  const lines=new Set([DONE_LINE,restLine(null,true)]);
+  const list=[[DONE_LINE]], cued=new Set();
   for(const st of steps){
-    if(st.kind==='gear'){ lines.add(gearLine(W.rid,W.lv)); continue; }
-    if(st.kind==='rest'){ lines.add(restLine(st.label)); continue; }
-    const ex=EX[st.ex]; lines.add(ex.name); lines.add(amtLine(st)); lines.add(cueLine(ex));
-    if(st.side) lines.add(st.side); if(ex.hold) lines.add(holdLine(ex.hold));
+    if(st.kind==='gear'){ list.push([gearLine(W.rid,W.lv)]); continue; }
+    if(st.kind==='rest'){ list.push([restLine(st.label,st.label==='準備開始'),EX[st.next.ex].name,st.next.side]); continue; }
+    const ex=EX[st.ex], parts=[ex.name,st.side,amtLine(st),ex.hold&&holdLine(ex.hold)];
+    if(S.settings.cueVoice && !cued.has(st.ex)){ cued.add(st.ex); parts.push(cueLine(ex)); }
+    list.push(parts);
   }
-  lines.forEach(l=>{ const f=pickVoiceFile(l); if(f) fetch(f).catch(()=>{}); });
+  const seen=new Set();
+  for(const parts of list){
+    const combo=voiceFile(parts);
+    const fs=voiceFiles.has(combo)?[combo]:parts.map(pickVoiceFile).filter(Boolean);
+    for(const f of fs) if(!seen.has(f)){ seen.add(f); fetch(f).catch(()=>{}); }
+  }
 }
 // 語音清單是非同步載入的，載好後更新設定頁的下拉選單
 try{ speechSynthesis.onvoiceschanged=()=>{ if(!W) fillVoiceSelect(); }; }catch(e){}
